@@ -1,0 +1,46 @@
+have_fun: false
+
+code_review:
+  disable: false
+  comment_severity_threshold: MEDIUM
+  max_review_comments: 25
+
+  pull_request_opened:
+    summary: true
+    code_review: true
+    help: false
+    include_drafts: false
+
+ignore_patterns:
+  # --- Big files / artifacts (Tableau + data + models) ---
+  - "data/raw/**"
+  - "data/staging/**"
+  - "data/mart/**"
+  - "models/artifacts/**"
+  - "**/*.hyper"
+  - "**/*.parquet"
+  - "**/*.csv"
+  - "**/*.jsonl"
+  - "**/*.pkl"
+  - "**/*.joblib"
+  - "**/*.feather"
+  - "**/*.db"
+  - "**/*.sqlite"
+  - "**/*.log"
+
+  # --- Notebook checkpoints / cache ---
+  - "**/.ipynb_checkpoints/**"
+  - "**/__pycache__/**"
+  - "**/*.pyc"
+  - "**/.pytest_cache/**"
+
+  # --- Build / dist ---
+  - "**/dist/**"
+  - "**/build/**"
+
+  # --- Secrets / env ---
+  - "**/.env"
+  - "**/.env.*"
+
+  # --- OS ---
+  - "**/.DS_Store"
