@@ -5,9 +5,6 @@ CREATE TABLE `PROJECT_ID.flight_delay.raw_flights` (
   airline_kr STRING,
   flight_iata STRING,
 
-  dep_airport_iata STRING,
-  dep_airport_kr STRING,
-
   status STRING,
   status_remark STRING,
   status_remark_code STRING,
