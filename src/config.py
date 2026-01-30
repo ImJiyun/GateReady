@@ -16,3 +16,5 @@ HEADERS = {
     "X-Requested-With": "XMLHttpRequest",
     "Content-Type": "application/json;charset=UTF-8",
 }
+
+DEFAULT_API_TIMEOUT = 10
