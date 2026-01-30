@@ -7,6 +7,7 @@ TABLE_ID = f"{GCP_PROJECT_ID}.{DATASET_ID}.raw_flights"
 
 # API
 FLIGHT_API_URL = os.getenv("FLIGHT_API_URL")
+AIRLINE_API_URL = os.getenv("AIRLINE_API_URL")
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0",
