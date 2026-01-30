@@ -68,4 +68,8 @@ secrets/
 # .venv file
 .venv/
 
+# Python cache
+__pycache__/
+*.pyc
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows
