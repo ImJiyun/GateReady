@@ -12,9 +12,9 @@ CREATE TABLE `PROJECT_ID.flight_delay.raw_flights` (
   status_remark STRING,
   status_remark_code STRING,
 
-  scheduled_dt DATETIME,
-  expected_dt  DATETIME,
-  actual_dt    DATETIME,
+  scheduled_utc_ts   TIMESTAMP,
+  expected_utc_ts    TIMESTAMP,
+  actual_utc_ts      TIMESTAMP,
 
   nature STRING,
   ymd DATE,
