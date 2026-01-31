@@ -1,4 +1,4 @@
-CREATE TABLE `PROJECT_ID.flight_delay.raw_flights` (
+CREATE TABLE `PROJECT_ID.raw.raw_flights` (
   flight_key STRING, -- ymd  + flight_iata
 
   airline_icao STRING, -- 항공사 ICAO 코드
@@ -22,7 +22,7 @@ CREATE TABLE `PROJECT_ID.flight_delay.raw_flights` (
 )
 PARTITION BY ymd;
 
-CREATE TABLE `PROJECT_ID.flight_delay.airlines` (
+CREATE TABLE `PROJECT_ID.raw.airlines` (
   airline_icao STRING, -- 항공사 ICAO 코드
   airline_iata STRING, -- 항공사 IATA 코드
   airline_kr STRING,   -- 항공사 한글명

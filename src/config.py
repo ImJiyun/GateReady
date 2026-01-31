@@ -2,8 +2,8 @@ import os
 
 # GCP
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-DATASET_ID = "flight_delay"
-RAW_FLIGHTS_TABLE_ID = f"{GCP_PROJECT_ID}.{DATASET_ID}.raw_flights"
+DATASET_ID = "raw"
+RAW_FLIGHTS_TABLE_ID = f"{GCP_PROJECT_ID}.{DATASET_ID}.flights"
 AIRLINES_TABLE_ID = f"{GCP_PROJECT_ID}.{DATASET_ID}.airlines"
 
 # API
