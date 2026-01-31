@@ -1,4 +1,4 @@
-CREATE TABLE `PROJECT_ID.raw.raw_flights` (
+CREATE TABLE `PROJECT_ID.raw.flights` (
   flight_key STRING, -- ymd  + flight_iata
 
   airline_icao STRING, -- 항공사 ICAO 코드
