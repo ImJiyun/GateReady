@@ -44,8 +44,8 @@ keyed AS (
       AS flight_leg_key,
 
     TIMESTAMP_ADD(scheduled_utc_ts, INTERVAL 9 HOUR) AS scheduled_kst_ts,
-    IFNULL(TIMESTAMP_ADD(expected_utc_ts, INTERVAL 9 HOUR), NULL) AS expected_kst_ts,
-    IFNULL(TIMESTAMP_ADD(actual_utc_ts, INTERVAL 9 HOUR), NULL) AS actual_kst_ts
+    TIMESTAMP_ADD(expected_utc_ts, INTERVAL 9 HOUR) AS expected_kst_ts,
+    TIMESTAMP_ADD(actual_utc_ts, INTERVAL 9 HOUR) AS actual_kst_ts
   FROM 
     base
 )
