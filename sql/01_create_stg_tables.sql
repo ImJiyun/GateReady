@@ -64,3 +64,51 @@ QUALIFY
       (status IS NOT NULL AND TRIM(status) != '') DESC,
       COALESCE(actual_utc_ts, expected_utc_ts, scheduled_utc_ts) DESC
   ) = 1;
+
+CREATE OR REPLACE VIEW `PROJECT_ID.stg.airlines` AS
+WITH cleaned AS (
+  SELECT
+    CASE
+      WHEN airline_icao IS NULL THEN NULL
+      WHEN REGEXP_CONTAINS(TRIM(airline_icao), r'^-+$') THEN NULL
+      ELSE NULLIF(UPPER(TRIM(airline_icao)), '')
+    END AS airline_icao,
+
+    CASE
+      WHEN airline_iata IS NULL THEN NULL
+      WHEN REGEXP_CONTAINS(TRIM(airline_iata), r'^-+$') THEN NULL
+      ELSE NULLIF(UPPER(TRIM(airline_iata)), '')
+    END AS airline_iata,
+
+    NULLIF(TRIM(airline_kr), '') AS airline_kr,
+    NULLIF(TRIM(airline_en), '') AS airline_en,
+
+    NULLIF(TRIM(city_kr), '') AS city_kr,
+    NULLIF(TRIM(city_en), '') AS city_en,
+    NULLIF(TRIM(country_kr), '') AS country_kr,
+    NULLIF(TRIM(country_en), '') AS country_en,
+    NULLIF(TRIM(continent_kr), '') AS continent_kr,
+    NULLIF(TRIM(continent_en), '') AS continent_en,
+
+    NULLIF(TRIM(business_model), '') AS business_model,
+    NULLIF(TRIM(operating_status), '') AS operating_status,
+
+    collected_at
+  FROM `PROJECT_ID.raw.airlines`
+)
+SELECT 
+  * EXCEPT(rn)
+FROM (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (
+      PARTITION BY airline_icao
+      ORDER BY collected_at DESC
+    ) AS rn
+  FROM 
+    cleaned
+  WHERE 
+    airline_icao IS NOT NULL
+)
+WHERE 
+  rn = 1;
