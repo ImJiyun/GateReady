@@ -57,7 +57,7 @@ FROM
   keyed
 QUALIFY
   ROW_NUMBER() OVER (
-    PARTITION BY flight_leg_key, collected_at
+    PARTITION BY flight_leg_key
     ORDER BY
       (actual_utc_ts IS NOT NULL) DESC,
       (expected_utc_ts IS NOT NULL) DESC,
