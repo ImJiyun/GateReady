@@ -109,6 +109,6 @@ FROM (
     cleaned
   WHERE 
     airline_icao IS NOT NULL
-)
-WHERE 
-  rn = 1;
+  QUALIFY 
+    rn = 1
+);
