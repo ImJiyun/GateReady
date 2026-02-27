@@ -1,12 +1,12 @@
 from google.cloud import bigquery
-from config import GCP_PROJECT_ID
+from config import BQ_PROJECT_ID
 
 _client = None
 
 def get_bq_client():
     global _client
     if _client is None:
-        _client = bigquery.Client(project=GCP_PROJECT_ID)
+        _client = bigquery.Client(project=BQ_PROJECT_ID)
     return _client
 
 
