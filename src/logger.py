@@ -43,6 +43,4 @@ def setup_logging(log_name="app", level=logging.INFO):
     file_handler.setFormatter(logging.Formatter(log_format, date_format))
     root_logger.addHandler(file_handler)
 
-# 로그 디렉토리 생성
-log_dir = Path(__file__).parent.parent / "logs"
-log_dir.mkdir(exist_ok=True)
+
