@@ -48,6 +48,7 @@ def main():
     # SQL 파일 실행
     sql_files = [
         'sql/bronze/create_flights_table.sql',
+        'sql/bronze/create_airlfines_table.sql'
     ]
     
     for sql_file in sql_files:
