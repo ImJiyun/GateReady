@@ -4,7 +4,7 @@ from urllib3.util.retry import Retry
 import pandas as pd
 from datetime import datetime, timedelta, UTC, timezone
 from zoneinfo import ZoneInfo
-from google.cloud import bigquery
+from bq import load_df_to_bq
 import os, re, json
 import time, random
 from dotenv import load_dotenv
@@ -91,16 +91,8 @@ def transform(records: list[dict], ymd: str) -> pd.DataFrame:
 
 
 def upload_to_bq(df: pd.DataFrame):
-    client = bigquery.Client(project=BQ_PROJECT_ID)
-
-    job = client.load_table_from_dataframe(
-        df,
-        BRONZE_FLIGHTS_TABLE_ID,
-        job_config=bigquery.LoadJobConfig(
-            write_disposition="WRITE_APPEND"
-        )
-    )
-    job.result()
+    """BigQuery에 DataFrame을 업로드합니다. (src/bq.py의 공통 기능을 사용)"""
+    load_df_to_bq(df, BRONZE_FLIGHTS_TABLE_ID)
 
 
 def collect_bronze_range(start_date: str, end_date: str):
