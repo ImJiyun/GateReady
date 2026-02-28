@@ -1,4 +1,4 @@
-CREATE TABLE `PROJECT_ID.bronze.flights` (
+CREATE TABLE IF NOT EXISTS `PROJECT_ID.bronze.flights` (
   flight_key STRING,
   
   airline_icao STRING,
@@ -12,6 +12,9 @@ CREATE TABLE `PROJECT_ID.bronze.flights` (
   actual_time STRING,         
   
   status STRING,
+  status_remark STRING,
+  status_remark_code STRING,
+  
   nature STRING,
   
   ymd STRING,                 
