@@ -1,0 +1,35 @@
+steps:
+  # 1단계: Docker 이미지 빌드
+  # cloud_run 폴더 내부의 Dockerfile을 사용하며, 빌드 컨텍스트는 루트(.)로 설정합니다.
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/realtime-collector",
+        "-f",
+        "cloud_run/Dockerfile",
+        ".",
+      ]
+
+  # 2단계: 이미지 푸시
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/realtime-collector"]
+
+  # 3단계: Cloud Run Job 업데이트
+  # 새로 빌드된 이미지로 기존 배포된 Job을 갱신합니다.
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "run"
+      - "jobs"
+      - "update"
+      - "realtime-job"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/realtime-collector"
+      - "--region"
+      - "asia-northeast3"
+
+# 빌드된 이미지를 Artifact Registry(또는 GCR)에 보관하도록 지정
+images:
+  - "gcr.io/$PROJECT_ID/realtime-collector"
