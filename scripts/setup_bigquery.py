@@ -8,7 +8,10 @@ project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
-from src.config import BQ_PROJECT_ID, BQ_DATASET_BRONZE
+from src.logger import setup_logging
+from src.config import BQ_PROJECT_ID
+
+logger = logging.getLogger(__name__)
 
 def execute_sql_file(client: bigquery.Client, sql_file: Path, dry_run: bool = False):
     """SQL 파일 실행 (PROJECT_ID 치환)"""
@@ -19,26 +22,23 @@ def execute_sql_file(client: bigquery.Client, sql_file: Path, dry_run: bool = Fa
     # PROJECT_ID를 실제 프로젝트 ID로 치환
     sql = sql.replace('PROJECT_ID', client.project)
     
-    logging.info(f"\n{'='*60}")
-    logging.info(f"File: {sql_file.name}")
-    logging.info(f"Project: {client.project}")
-    logging.info(f"{'='*60}")
+    logger.info(f"Executing {sql_file.name}")
     
     if dry_run:
-        logging.info(sql)
+        logger.info(sql)
         return
     
     try:
         job = client.query(sql)
         job.result()
-        logging.info(f"Success")
+        logger.info(f"Successfully executed {sql_file.name}")
     except Exception as e:
-        logging.info(f"Error: {e}")
+        logger.error(f"Error executing {sql_file.name}: {e}")
         raise
 
 def main():
-    # 로깅 설정
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    # 로깅 초기화
+    setup_logging()
     
     if not BQ_PROJECT_ID:
         raise ValueError("BQ_PROJECT_ID not set in .env file")
