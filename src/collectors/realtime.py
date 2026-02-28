@@ -1,5 +1,5 @@
 """
-실시간 데이터 수집 (5분마다)
+실시간 데이터 수집 (10분마다)
 """
 import sys
 
@@ -26,77 +26,78 @@ logger = logging.getLogger(__name__)
 
 KST = ZoneInfo("Asia/Seoul")
 
-def get_time_window(hours_before=3, hours_after=3):
-    """현재 시각 ±3시간 윈도우"""
+def get_time_windows(hours_before=3, hours_after=3):
+    """
+    현재 시각 기준 수집 윈도우 생성 (날짜 경계 처리 포함)
+    통계적 지연 분석을 위해 예정 시각 기준 ±3시간 범위를 수집합니다.
+    """
     now = datetime.now(KST)
-    
     start_dt = now - timedelta(hours=hours_before)
     end_dt = now + timedelta(hours=hours_after)
     
-    start_time = start_dt.strftime("%H%M")
-    end_time = end_dt.strftime("%H%M")
+    windows = []
     
-    # 자정 넘어갈 경우 처리
-    if start_dt.date() < now.date():
-        start_time = "0000"
-    if end_dt.date() > now.date():
-        end_time = "2359"
+    # 시작일과 종료일이 같은 경우
+    if start_dt.date() == end_dt.date():
+        windows.append((
+            start_dt.strftime("%Y%m%d"),
+            start_dt.strftime("%H%M"),
+            end_dt.strftime("%H%M")
+        ))
+    # 날짜가 바뀌는 경우 (자정을 지날 때)
+    else:
+        # 오늘 치 (시작 시각 ~ 23:59)
+        windows.append((
+            start_dt.strftime("%Y%m%d"),
+            start_dt.strftime("%H%M"),
+            "2359"
+        ))
+        # 다음 날 치 (00:00 ~ 종료 시각)
+        windows.append((
+            end_dt.strftime("%Y%m%d"),
+            "0000",
+            end_dt.strftime("%H%M")
+        ))
     
-    return start_time, end_time
+    return windows
 
 
-def fetch_current_flights(session: requests.Session) -> list[dict]:
-    """현재 진행 중인 항공편 조회"""
-    now = datetime.now(KST)
-    ymd = now.strftime("%Y%m%d")
-    start_time, end_time = get_time_window()
+def fetch_current_flights(session: requests.Session) -> list[tuple[dict, str]]:
+    """
+    현재 진행 중인 항공편 조회 (다중 윈도우 지원)
+    Returns: list of (record_dict, ymd_string) 튜플
+    """
+    windows = get_time_windows()
+    all_results = []
     
-    payload = {
-        "searchContext": "departure",
-        "ymd": ymd,
-        "startTime": start_time,  # 동적
-        "endTime": end_time,      # 동적
-        "loadType": "json",
-        "depAirport": "RKSI",
-    }
-    
-    logger.debug(f"Query: {ymd} {start_time}-{end_time}")
-    
-    res = session.post(
-        FLIGHT_API_URL,
-        json=payload,
-        headers=HEADERS,
-        timeout=DEFAULT_API_TIMEOUT,
-    )
-    
-    res.raise_for_status()
-    records = res.json().get("content", [])
-    
-    # 필터: 아직 안 떴거나 최근 1시간 이내
-    filtered = []
-    cutoff = now - timedelta(hours=1)
-    
-    for r in records:
-        actual = r.get("actualFlightTime")
+    for ymd, start_time, end_time in windows:
+        payload = {
+            "searchContext": "departure",
+            "ymd": ymd,
+            "startTime": start_time,
+            "endTime": end_time,
+            "loadType": "json",
+            "depAirport": "RKSI",
+        }
         
-        if not actual:
-            filtered.append(r)  # 아직 안 떴음
-            continue
+        logger.info(f"Fetching flights: {ymd} {start_time}-{end_time}")
         
-        # 떴는데 최근이면 포함
-        try:
-            actual_dt = datetime.strptime(
-                f"{ymd} {actual}", 
-                "%Y%m%d %H:%M"
-            ).replace(tzinfo=KST)
+        res = session.post(
+            FLIGHT_API_URL,
+            json=payload,
+            headers=HEADERS,
+            timeout=DEFAULT_API_TIMEOUT,
+        )
+        
+        res.raise_for_status()
+        records = res.json().get("content", [])
+        
+        # 각 레코드와 해당 날짜를 페어링
+        for r in records:
+            all_results.append((r, ymd))
             
-            if actual_dt >= cutoff:
-                filtered.append(r)
-        except:
-            filtered.append(r)
-    
-    logger.info(f"Active flights: {len(filtered)}/{len(records)}")
-    return filtered
+    logger.info(f"Total flights fetched across {len(windows)} windows: {len(all_results)}")
+    return all_results
 
 
 def collect_realtime():
@@ -104,17 +105,27 @@ def collect_realtime():
     session = build_session()
     
     try:
-        records = fetch_current_flights(session)
+        # (record, ymd) 형태의 튜플 리스트 반환
+        pairs = fetch_current_flights(session)
         
-        if not records:
+        if not pairs:
             logger.info("No active flights found at this time.")
             return
         
-        ymd = datetime.now(KST).strftime("%Y%m%d")
-        df = transform(records, ymd)
-        upload_to_bq(df)
-        
-        logger.info(f"Collected and uploaded {len(df)} flights")
+        # 날짜별로 그룹화하여 처리
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        for record, ymd in pairs:
+            grouped[ymd].append(record)
+            
+        total_count = 0
+        for ymd, records in grouped.items():
+            df = transform(records, ymd)
+            upload_to_bq(df)
+            total_count += len(df)
+            logger.info(f"[{ymd}] Uploaded {len(df)} flights")
+            
+        logger.info(f"Done. Collected and uploaded {total_count} flights in total.")
         
     except Exception:
         logger.exception("Failed to collect realtime flights")
