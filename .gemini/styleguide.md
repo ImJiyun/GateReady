@@ -6,6 +6,36 @@ This repo:
 - Builds analytics tables (preferably in BigQuery) for Tableau dashboards
 - Trains a model to predict delay (minutes) and publishes predictions for dashboard use
 
+## Data Architecture (Medallion Architecture)
+
+This project follows the Medallion Architecture (Bronze, Silver, Gold).
+
+### 1) Bronze Layer (Ingestion / Raw)
+
+- **Goal**: Preserve raw data from source systems for lineage and re-processability.
+- **Rules**:
+  - **Type Safety**: In the Bronze layer, favor `STRING` (or `JSON`) for most source-originated fields. This prevents ingestion failures due to source schema changes or unexpected data formats.
+  - **Minimal Transformation**: Do not apply complex business logic or type conversions here.
+  - **Audit Fields**: Always include `collected_at` (UTC) and the full `raw_json` if possible.
+  - **Deduplication**: Ingestion can be `WRITE_APPEND`; deduplication is handled in Silver/Gold.
+
+### 2) Silver Layer (Cleansing / Standardized)
+
+- **Goal**: Clean data, apply types, and normalize.
+- **Rules**:
+  - **Type Conversion**: Convert Bronze `STRING` fields to their appropriate analytical types (`TIMESTAMP`, `INT64`, `DATE`, etc.).
+  - **Cleaning**: Handle nulls, trim strings, and normalize naming conventions.
+  - **Deduplication**: Apply primary key constraints and deduplicate records.
+  - **Validation**: Enforce schema constraints and data quality checks.
+
+### 3) Gold Layer (Business / Analytics)
+
+- **Goal**: Provide "ready-to-use" tables for Tableau and ML models.
+- **Rules**:
+  - **Aggregation**: Pre-calculate metrics and dimensions needed for dashboards.
+  - **Join-heavy**: Tables should be flattened (denormalized) to optimize for Tableau performance.
+  - **ML Features**: Store features prepared for model training and inference.
+
 ## Top priorities
 
 ### 1) Time correctness (critical)
