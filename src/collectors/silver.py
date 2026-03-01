@@ -7,13 +7,15 @@ import sys
 
 # 프로젝트 루트 경로 추가
 src_path = str(Path(__file__).resolve().parent.parent)
-if src_path not in sys.path:
-    sys.path.append(src_path)
+from zoneinfo import ZoneInfo
+import sys
 
 from bq import load_df_to_bq
 from config import BRONZE_FLIGHTS_TABLE_ID, SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID
 
 logger = logging.getLogger(__name__)
+
+KST = ZoneInfo("Asia/Seoul")
 
 def clean_flight_time(time_str):
     """
@@ -62,29 +64,31 @@ def process_silver_layer(ymd_list=None):
     df['clean_expected'] = df['expected_time'].apply(clean_flight_time)
     df['clean_actual'] = df['actual_time'].apply(clean_flight_time)
     
-    # 2. DateTime 변환
+    # 2. DateTime 변환 (KST -> UTC)
     def to_dt(row, col):
         if not row[col]: return None
-        return pd.to_datetime(row['ymd'] + row[col], format='%Y%m%d%H%M', errors='coerce')
+        # 문자열을 Datetime으로 변환 (KST Naive)
+        dt = pd.to_datetime(row['ymd'] + row[col], format='%Y%m%d%H%M', errors='coerce')
+        if pd.isna(dt): return None
+        
+        # KST 타임존 부여 후 UTC로 변환
+        return dt.tz_localize(KST).tz_convert('UTC')
 
-    df['scheduled_dt'] = df.apply(lambda r: to_dt(r, 'clean_scheduled'), axis=1)
-    df['expected_dt'] = df.apply(lambda r: to_dt(r, 'clean_expected'), axis=1)
-    df['actual_dt'] = df.apply(lambda r: to_dt(r, 'clean_actual'), axis=1)
+    df['scheduled_utc'] = df.apply(lambda r: to_dt(r, 'clean_scheduled'), axis=1)
+    df['expected_utc'] = df.apply(lambda r: to_dt(r, 'clean_expected'), axis=1)
+    df['actual_utc'] = df.apply(lambda r: to_dt(r, 'clean_actual'), axis=1)
 
-    # 3. 현재 시점의 지연 시간 계산 
-    # expected_dt가 있으면 그걸 쓰고, 없으면 scheduled_dt와의 차이 계산
-    df['current_delay_min'] = (df['expected_dt'] - df['scheduled_dt']).dt.total_seconds() / 60
+    # 3. 현재 시점의 지연 시간 계산 (UTC 타임스탬프끼리 연산하므로 정확함)
+    df['current_delay_min'] = (df['expected_utc'] - df['scheduled_utc']).dt.total_seconds() / 60
     df['current_delay_min'] = df['current_delay_min'].fillna(0)
 
     # 4. 중복 스냅샷 제거 
-    # 같은 비행기(flight_key)인데, 모든 상태값(status, expected_dt)이 똑같은 
-    # 중복 수집 기록은 하나만 남깁니다. 
     df = df.sort_values(['flight_key', 'collected_at'])
-    df['prev_expected'] = df.groupby('flight_key')['expected_dt'].shift(1)
+    df['prev_expected'] = df.groupby('flight_key')['expected_utc'].shift(1)
     df['prev_status'] = df.groupby('flight_key')['status'].shift(1)
 
     # 상태가 변했거나, 첫 데이터인 경우만 필터링
-    is_changed = (df['expected_dt'] != df['prev_expected']) | (df['status'] != df['prev_status'])
+    is_changed = (df['expected_utc'] != df['prev_expected']) | (df['status'] != df['prev_status'])
     history_df = df[is_changed].copy()
 
     # 5. Silver History 테이블에 MERGE (중복 방지)
@@ -94,8 +98,8 @@ def process_silver_layer(ymd_list=None):
 
     # 필요한 컬럼만 선택
     target_columns = [
-        'flight_key', 'airline_icao', 'flight_iata', 'scheduled_dt', 
-        'expected_dt', 'actual_dt', 'status', 'current_delay_min', 
+        'flight_key', 'airline_icao', 'flight_iata', 'scheduled_utc', 
+        'expected_utc', 'actual_utc', 'status', 'current_delay_min', 
         'collected_at', 'ymd'
     ]
     final_df = history_df[target_columns].copy()
@@ -114,8 +118,8 @@ def process_silver_layer(ymd_list=None):
         USING `{staging_table_id}` S
         ON T.flight_key = S.flight_key AND T.collected_at = S.collected_at
         WHEN NOT MATCHED THEN
-          INSERT (flight_key, airline_icao, flight_iata, scheduled_dt, expected_dt, actual_dt, status, current_delay_min, collected_at, ymd)
-          VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_dt, S.expected_dt, S.actual_dt, S.status, S.current_delay_min, S.collected_at, S.ymd)
+          INSERT (flight_key, airline_icao, flight_iata, scheduled_utc, expected_utc, actual_utc, status, current_delay_min, collected_at, ymd)
+          VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.current_delay_min, S.collected_at, S.ymd)
         """
         
         from bq import get_bq_client
