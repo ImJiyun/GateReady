@@ -3,7 +3,7 @@ WITH latest_snapshot AS (
   SELECT 
     *,
     ROW_NUMBER() OVER(
-      PARTITION BY ymd, flight_iata 
+      PARTITION BY flight_key
       ORDER BY collected_at DESC
     ) as row_num
   FROM 
