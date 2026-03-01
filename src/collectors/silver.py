@@ -78,9 +78,8 @@ def process_silver_layer(ymd_list=None):
     df['expected_utc'] = df.apply(lambda r: to_dt(r, 'clean_expected'), axis=1)
     df['actual_utc'] = df.apply(lambda r: to_dt(r, 'clean_actual'), axis=1)
 
-    # 3. 현재 시점의 지연 시간 계산 (UTC 타임스탬프끼리 연산하므로 정확함)
+    # 3. 현재 시점의 지연 시간 계산
     df['current_delay_min'] = (df['expected_utc'] - df['scheduled_utc']).dt.total_seconds() / 60
-    df['current_delay_min'] = df['current_delay_min'].fillna(0)
 
     # 4. 중복 스냅샷 제거 
     df = df.sort_values(['flight_key', 'collected_at'])
