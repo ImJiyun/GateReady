@@ -45,18 +45,6 @@ def clean_flight_time(time_str):
     except:
         return None
 
-def to_dt(row, col):
-    """
-    KST 문자열 시간을 UTC Datetime으로 변환
-    """
-    if not row[col]: return None
-    # 문자열을 Datetime으로 변환 (KST Naive)
-    dt = pd.to_datetime(row['ymd'] + row[col], format='%Y%m%d%H%M', errors='coerce')
-    if pd.isna(dt): return None
-    
-    # KST 타임존 부여 후 UTC로 변환
-    return dt.tz_localize(KST).tz_convert('UTC')
-
 def process_silver_layer(ymd_list=None):
     """
     Bronze의 모든 이력을 가져되, 파이썬으로 정제(13:68 처리 등)하고
@@ -77,10 +65,11 @@ def process_silver_layer(ymd_list=None):
     df['clean_expected'] = df['expected_time'].apply(clean_flight_time)
     df['clean_actual'] = df['actual_time'].apply(clean_flight_time)
     
-    # 2. DateTime 변환 (KST -> UTC)
-    df['scheduled_utc'] = df.apply(lambda r: to_dt(r, 'clean_scheduled'), axis=1)
-    df['expected_utc'] = df.apply(lambda r: to_dt(r, 'clean_expected'), axis=1)
-    df['actual_utc'] = df.apply(lambda r: to_dt(r, 'clean_actual'), axis=1)
+    # 2. DateTime 변환 (KST -> UTC) 
+    for col_prefix in ['scheduled', 'expected', 'actual']:
+        datetime_str = df['ymd'] + df[f'clean_{col_prefix}']
+        naive_dt = pd.to_datetime(datetime_str, format='%Y%m%d%H%M', errors='coerce')
+        df[f'{col_prefix}_utc'] = naive_dt.dt.tz_localize(KST).dt.tz_convert('UTC')
 
     # 3. 현재 시점의 지연 시간 계산
     df['current_delay_min'] = (df['expected_utc'] - df['scheduled_utc']).dt.total_seconds() / 60
