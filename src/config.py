@@ -7,7 +7,8 @@ load_dotenv(override=True)
 
 # BigQuery
 BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID")
-BQ_DATASET_BRONZE = os.getenv("BQ_DATASET_BRONZE")
+BQ_DATASET_BRONZE = os.getenv("BQ_DATASET_BRONZE", "bronze")
+BQ_DATASET_SILVER = os.getenv("BQ_DATASET_SILVER", "silver")
 
 # GOOGLE_APPLICATION_CREDENTIALS가 상대 경로일 경우 절대 경로로 변환
 creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -17,6 +18,7 @@ if creds_path and not os.path.isabs(creds_path):
 
 BRONZE_FLIGHTS_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_BRONZE}.flights"
 BRONZE_AIRLINES_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_BRONZE}.airlines"
+SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_SILVER}.flights_snapshots"
 
 # API
 FLIGHT_API_URL = os.getenv("FLIGHT_API_URL")

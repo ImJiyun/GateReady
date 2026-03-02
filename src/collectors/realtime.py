@@ -21,6 +21,7 @@ from config import (
     DEFAULT_API_TIMEOUT
 )
 from collectors.bronze import transform, upload_to_bq  
+from collectors.silver import process_silver_layer
 
 logger = logging.getLogger(__name__)
 
@@ -123,9 +124,14 @@ def collect_realtime():
             df = transform(records, ymd)
             upload_to_bq(df)
             total_count += len(df)
-            logger.info(f"[{ymd}] Uploaded {len(df)} flights")
+            logger.info(f"[{ymd}] Uploaded {len(df)} flights to Bronze")
             
-        logger.info(f"Done. Collected and uploaded {total_count} flights in total.")
+        # 3. Silver 정제 및 적재 (방금 업로드한 날짜들에 대해 수행)
+        if grouped:
+            logger.info("Starting Silver layer processing...")
+            process_silver_layer(list(grouped.keys()))
+            
+        logger.info(f"Done. Collected {total_count} flights and processed Silver layer.")
         
     except Exception:
         logger.exception("Failed to collect realtime flights")
