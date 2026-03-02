@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from src.collectors.silver import clean_flight_time, to_dt, process_silver_layer
+from src.collectors.silver import clean_flight_time, process_silver_layer
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -26,18 +26,6 @@ def test_clean_flight_time():
     assert clean_flight_time("invalid") is None
     assert clean_flight_time("12") is None # Too short
 
-def test_to_dt():
-    # 2024-03-01 13:45 KST -> 04:45 UTC
-    row = {'ymd': '20240301', 'time': '1345'}
-    result = to_dt(row, 'time')
-    
-    assert result.year == 2024
-    assert result.month == 3
-    assert result.day == 1
-    assert result.hour == 4
-    assert result.minute == 45
-    assert str(result.tzinfo) == 'UTC'
-
 def test_process_silver_layer_deduplication(mocker):
     # 빅쿼리 읽기, 저장, MERGE 쿼리 실행을 위한 mock
     mock_read_gbq = mocker.patch("pandas.read_gbq")
@@ -55,7 +43,7 @@ def test_process_silver_layer_deduplication(mocker):
             'expected_time': '10:00',
             'actual_time': None,
             'status': 'Scheduled',
-            'collected_at': pd.Timestamp('2024-03-01 08:00:00'),
+            'collected_at': pd.Timestamp('2024-03-01 08:00:00', tz='UTC'),
             'ymd': '20240301',
             'airline_icao': 'ABC',
             'flight_iata': 'AB123'
@@ -66,7 +54,7 @@ def test_process_silver_layer_deduplication(mocker):
             'expected_time': '10:00',
             'actual_time': None,
             'status': 'Scheduled',
-            'collected_at': pd.Timestamp('2024-03-01 08:10:00'),
+            'collected_at': pd.Timestamp('2024-03-01 08:10:00', tz='UTC'),
             'ymd': '20240301',
             'airline_icao': 'ABC',
             'flight_iata': 'AB123'
@@ -77,7 +65,7 @@ def test_process_silver_layer_deduplication(mocker):
             'expected_time': '10:30',
             'actual_time': None,
             'status': 'Delayed',
-            'collected_at': pd.Timestamp('2024-03-01 08:20:00'),
+            'collected_at': pd.Timestamp('2024-03-01 08:20:00', tz='UTC'),
             'ymd': '20240301',
             'airline_icao': 'ABC',
             'flight_iata': 'AB123'
@@ -94,8 +82,8 @@ def test_process_silver_layer_deduplication(mocker):
     final_df = args[0]
     
     assert len(final_df) == 2
-    assert final_df.iloc[0]['collected_at'] == pd.Timestamp('2024-03-01 08:00:00')
-    assert final_df.iloc[1]['collected_at'] == pd.Timestamp('2024-03-01 08:20:00')
+    assert final_df.iloc[0]['collected_at'] == pd.Timestamp('2024-03-01 08:00:00', tz='UTC')
+    assert final_df.iloc[1]['collected_at'] == pd.Timestamp('2024-03-01 08:20:00', tz='UTC')
 
 def test_process_silver_layer_empty_bronze(mocker):
     """
@@ -145,7 +133,7 @@ def test_process_silver_layer_merge_exception(mocker):
             'expected_time': '10:00',
             'actual_time': None,
             'status': 'Scheduled',
-            'collected_at': pd.Timestamp('2024-03-01 08:00:00'),
+            'collected_at': pd.Timestamp('2024-03-01 08:00:00', tz='UTC'),
             'ymd': '20240301',
             'airline_icao': 'ABC',
             'flight_iata': 'AB123'
