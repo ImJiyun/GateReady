@@ -4,13 +4,14 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 import sys
-
-# 프로젝트 루트 경로 추가
-src_path = str(Path(__file__).resolve().parent.parent)
 from zoneinfo import ZoneInfo
-import sys
 
-from bq import load_df_to_bq
+# 프로젝트 루트(src) 경로 추가 (직접 실행 및 모듈 참조용)
+src_path = str(Path(__file__).resolve().parent.parent)
+if src_path not in sys.path:
+    sys.path.append(src_path)
+
+from bq import load_df_to_bq, get_bq_client
 from config import BRONZE_FLIGHTS_TABLE_ID, SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID
 
 logger = logging.getLogger(__name__)
@@ -44,9 +45,21 @@ def clean_flight_time(time_str):
     except:
         return None
 
+def to_dt(row, col):
+    """
+    KST 문자열 시간을 UTC Datetime으로 변환
+    """
+    if not row[col]: return None
+    # 문자열을 Datetime으로 변환 (KST Naive)
+    dt = pd.to_datetime(row['ymd'] + row[col], format='%Y%m%d%H%M', errors='coerce')
+    if pd.isna(dt): return None
+    
+    # KST 타임존 부여 후 UTC로 변환
+    return dt.tz_localize(KST).tz_convert('UTC')
+
 def process_silver_layer(ymd_list=None):
     """
-    Bronze의 모든 이력을 가져오되, 파이썬으로 정제(13:68 처리 등)하고
+    Bronze의 모든 이력을 가져되, 파이썬으로 정제(13:68 처리 등)하고
     의미 있는 변화가 있는 스냅샷만 Silver에 저장합니다.
     """
     query = f"SELECT * FROM `{BRONZE_FLIGHTS_TABLE_ID}`"
@@ -65,15 +78,6 @@ def process_silver_layer(ymd_list=None):
     df['clean_actual'] = df['actual_time'].apply(clean_flight_time)
     
     # 2. DateTime 변환 (KST -> UTC)
-    def to_dt(row, col):
-        if not row[col]: return None
-        # 문자열을 Datetime으로 변환 (KST Naive)
-        dt = pd.to_datetime(row['ymd'] + row[col], format='%Y%m%d%H%M', errors='coerce')
-        if pd.isna(dt): return None
-        
-        # KST 타임존 부여 후 UTC로 변환
-        return dt.tz_localize(KST).tz_convert('UTC')
-
     df['scheduled_utc'] = df.apply(lambda r: to_dt(r, 'clean_scheduled'), axis=1)
     df['expected_utc'] = df.apply(lambda r: to_dt(r, 'clean_expected'), axis=1)
     df['actual_utc'] = df.apply(lambda r: to_dt(r, 'clean_actual'), axis=1)
@@ -121,7 +125,6 @@ def process_silver_layer(ymd_list=None):
           VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.current_delay_min, S.collected_at, S.ymd)
         """
         
-        from bq import get_bq_client
         client = get_bq_client()
         logger.info("Executing MERGE into production Silver table...")
         client.query(merge_query).result()
