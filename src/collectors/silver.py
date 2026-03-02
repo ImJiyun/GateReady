@@ -71,8 +71,11 @@ def process_silver_layer(ymd_list=None):
         naive_dt = pd.to_datetime(datetime_str, format='%Y%m%d%H%M', errors='coerce')
         df[f'{col_prefix}_utc'] = naive_dt.dt.tz_localize(KST).dt.tz_convert('UTC')
 
-    # 3. 현재 시점의 지연 시간 계산
-    df['current_delay_min'] = (df['expected_utc'] - df['scheduled_utc']).dt.total_seconds() / 60
+    # 3. 현재 시점의 지연 시간 계산 
+    # - 실제 출발 시각이 있으면: actual_utc - scheduled_utc
+    # - 아직 출발 전이면: collected_at - scheduled_utc
+    reference_time = df['actual_utc'].fillna(df['collected_at'])
+    df['current_delay_min'] = (reference_time - df['scheduled_utc']).dt.total_seconds() / 60
 
     # 4. 중복 스냅샷 제거 
     df = df.sort_values(['flight_key', 'collected_at'])
