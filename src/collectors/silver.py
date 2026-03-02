@@ -106,7 +106,7 @@ def process_silver_layer(ymd_list=None):
 
     try:
         # 실행마다 유니크한 staging 테이블 이름 생성
-        run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        run_id = datetime.now(ZoneInfo("UTC")).strftime("%Y%m%d_%H%M%S")
         staging_table_id = f"{SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID}_staging_{run_id}"
 
         # 5-1. 데이터를 임시 테이블에 적재 (덮어쓰기)
