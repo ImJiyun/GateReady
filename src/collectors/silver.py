@@ -99,15 +99,20 @@ def process_silver_layer(ymd_list=None):
         'collected_at', 'ymd'
     ]
     final_df = history_df[target_columns].copy()
-    
-    # 임시 스테이징 테이블 이름
-    staging_table_id = f"{SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID}_staging"
-    
+
+    # client는 미리 만들고, staging_table_id는 None으로 시작
+    client = get_bq_client()
+    staging_table_id = None
+
     try:
+        # 실행마다 유니크한 staging 테이블 이름 생성
+        run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        staging_table_id = f"{SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID}_staging_{run_id}"
+
         # 5-1. 데이터를 임시 테이블에 적재 (덮어쓰기)
         logger.info(f"Uploading {len(final_df)} rows to staging table...")
         load_df_to_bq(final_df, staging_table_id, write_disposition="WRITE_TRUNCATE")
-        
+
         # 5-2. MERGE 쿼리 실행
         merge_query = f"""
         MERGE `{SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID}` T
@@ -117,18 +122,20 @@ def process_silver_layer(ymd_list=None):
           INSERT (flight_key, airline_icao, flight_iata, scheduled_utc, expected_utc, actual_utc, status, current_delay_min, collected_at, ymd)
           VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.current_delay_min, S.collected_at, S.ymd)
         """
-        
-        client = get_bq_client()
+
         logger.info("Executing MERGE into production Silver table...")
         client.query(merge_query).result()
-        
-        # 5-3. 스테이징 테이블 삭제
-        client.delete_table(staging_table_id, not_found_ok=True)
+
         logger.info("Silver layer processing completed successfully with MERGE.")
-        
+
     except Exception as e:
         logger.error(f"Failed to merge Silver layer: {e}")
         raise
+
+    finally:
+        # 5-3. 성공/실패 상관없이 staging 정리
+        if staging_table_id:
+            client.delete_table(staging_table_id, not_found_ok=True)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
