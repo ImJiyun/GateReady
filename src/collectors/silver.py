@@ -42,7 +42,8 @@ def clean_flight_time(time_str):
             m = m % 60
         h = h % 24
         return f"{h:02d}{m:02d}"
-    except:
+    except (ValueError, TypeError) as e:
+        logger.debug(f"Failed to parse time from '{digits}': {e}")
         return None
 
 def process_silver_layer(ymd_list=None):
