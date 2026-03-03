@@ -102,5 +102,5 @@ SELECT
 
 FROM last_snapshot l
 JOIN first_snapshot f ON l.flight_key = f.flight_key
-LEFT JOIN bronze_info b ON l.flight_key = b.flight_key
+INNER JOIN bronze_info b ON l.flight_key = b.flight_key
 WHERE b.nature = '여객';

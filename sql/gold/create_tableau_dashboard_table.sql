@@ -75,6 +75,6 @@ SELECT
   CASE WHEN f.status = '취소' THEN 1 ELSE 0 END AS is_canceled
 
 FROM base_flights f
-LEFT JOIN bronze_info b 
+INNER JOIN bronze_info b 
   ON f.flight_key = b.flight_key
 WHERE b.nature = '여객';
