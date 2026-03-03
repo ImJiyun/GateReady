@@ -1,5 +1,6 @@
 import re
 import logging
+import numpy as np
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
@@ -72,11 +73,27 @@ def process_silver_layer(ymd_list=None):
         naive_dt = pd.to_datetime(datetime_str, format='%Y%m%d%H%M', errors='coerce')
         df[f'{col_prefix}_utc'] = naive_dt.dt.tz_localize(KST).dt.tz_convert('UTC')
 
-    # 3. 현재 시점의 지연 시간 계산 
-    # - 실제 출발 시각이 있으면: actual_utc - scheduled_utc
-    # - 아직 출발 전이면: collected_at - scheduled_utc
-    reference_time = df['actual_utc'].fillna(df['collected_at'])
-    df['current_delay_min'] = (reference_time - df['scheduled_utc']).dt.total_seconds() / 60
+    # 3. 현재 시점의 지연 시간 계산 (우선순위)
+    # 1순위: actual 있으면 → actual - scheduled (확정 지연)
+    # 2순위: expected 있고, collected > expected → collected - scheduled (expected 지났는데 미출발)
+    # 3순위: expected 있고, collected <= expected → expected - scheduled (항공사 예상 지연)
+    # 4순위: expected 없고, collected > scheduled → collected - scheduled (예정 시각 지남)
+    # 그 외: NULL (아직 예정 시각 전, 정보 없음)
+
+
+    conditions = [
+        df['actual_utc'].notna(),
+        df['expected_utc'].notna() & (df['collected_at'] > df['expected_utc']),
+        df['expected_utc'].notna() & (df['collected_at'] <= df['expected_utc']),
+        df['expected_utc'].isna() & (df['collected_at'] > df['scheduled_utc']),
+    ]
+    choices = [
+        (df['actual_utc'] - df['scheduled_utc']).dt.total_seconds() / 60,
+        (df['collected_at'] - df['scheduled_utc']).dt.total_seconds() / 60,
+        (df['expected_utc'] - df['scheduled_utc']).dt.total_seconds() / 60,
+        (df['collected_at'] - df['scheduled_utc']).dt.total_seconds() / 60,
+    ]
+    df['current_delay_min'] = np.select(conditions, choices, default=np.nan)
 
     # 4. 중복 스냅샷 제거 
     df = df.sort_values(['flight_key', 'collected_at'])

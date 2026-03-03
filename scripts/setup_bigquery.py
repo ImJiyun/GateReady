@@ -47,8 +47,15 @@ def main():
     
     # SQL 파일 실행
     sql_files = [
+        # Bronze
         'sql/bronze/create_flights_table.sql',
-        'sql/bronze/create_airlines_table.sql'
+        'sql/bronze/create_airlines_table.sql',
+        # Silver
+        'sql/silver/create_flights_snapshots_table.sql',
+        'sql/silver/create_flights_view.sql',
+        # Gold
+        'sql/gold/create_tableau_dashboard_table.sql',
+        'sql/gold/create_delay_escalation_table.sql'
     ]
     
     for sql_file in sql_files:
