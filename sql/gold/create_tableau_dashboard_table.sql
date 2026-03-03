@@ -11,14 +11,16 @@ WITH base_flights AS (
 
 -- Bronze에서 Silver에 없는 부가 정보 가져오기 (항공사 한글명, 공항 정보 등)
 bronze_info AS (
-  SELECT 
-    flight_key,
-    airline_kr,
-    arr_airport_iata,
-    arr_airport_kr,
-    nature,
-    ROW_NUMBER() OVER(PARTITION BY flight_key ORDER BY collected_at DESC) AS rn
-  FROM `bronze.flights`
+  SELECT * FROM (
+    SELECT 
+      flight_key,
+      airline_kr,
+      arr_airport_iata,
+      arr_airport_kr,
+      nature,
+      ROW_NUMBER() OVER(PARTITION BY flight_key ORDER BY collected_at DESC) AS rn
+    FROM `bronze.flights`
+  ) WHERE rn = 1
 )
 
 SELECT
@@ -74,5 +76,5 @@ SELECT
 
 FROM base_flights f
 LEFT JOIN bronze_info b 
-  ON f.flight_key = b.flight_key AND b.rn = 1
+  ON f.flight_key = b.flight_key
 WHERE b.nature = '여객';
