@@ -1,10 +1,15 @@
 main:
   steps:
+    # 프로젝트 번호를 변수로 먼저 할당
+    - init:
+        assign:
+          - project_number: ${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}
+
     # Step 1: Bronze Job 실행 (실시간 수집)
     - run_bronze:
         call: googleapis.run.v1.namespaces.jobs.run
         args:
-          name: namespaces/${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}/jobs/realtime-job
+          name: ${"namespaces/" + project_number + "/jobs/realtime-job"}
           location: asia-northeast3
         result: bronze_result
 
@@ -12,7 +17,7 @@ main:
     - run_silver:
         call: googleapis.run.v1.namespaces.jobs.run
         args:
-          name: namespaces/${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}/jobs/silver-job
+          name: ${"namespaces/" + project_number + "/jobs/silver-job"}
           location: asia-northeast3
         result: silver_result
 
