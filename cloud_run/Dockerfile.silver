@@ -1,0 +1,21 @@
+# Silver Job Dockerfile
+# Bronze Job과 동일한 베이스 이미지 사용, 진입점만 다름
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN mkdir -p logs && chmod 777 logs
+
+# Silver Job 진입점
+CMD ["python", "cloud_run/run_silver_job.py"]
