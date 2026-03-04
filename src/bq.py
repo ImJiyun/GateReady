@@ -1,5 +1,5 @@
 from google.cloud import bigquery
-from config import BQ_PROJECT_ID
+from src.config import BQ_PROJECT_ID
 
 _client = None
 
