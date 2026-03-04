@@ -32,7 +32,7 @@ def get_target_ymds(lookback_minutes: int = 15) -> list[str]:
         return ymds
     except Exception:
         logging.exception("Failed to query target ymds from BigQuery")
-        return []
+        raise
 
 
 def main():
