@@ -1,27 +1,19 @@
 """
 실시간 데이터 수집 (10분마다)
 """
-import sys
-
-from pathlib import Path
 import requests
 import pandas as pd
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import logging
 from zoneinfo import ZoneInfo
-
-src_path = str(Path(__file__).resolve().parent.parent)
-if src_path not in sys.path:
-    sys.path.append(src_path)
     
-from clients.session import build_session
-from config import (
-    FLIGHT_API_URL, 
-    HEADERS, 
+from src.clients.session import build_session
+from src.config import (
+    FLIGHT_API_URL,
+    HEADERS,
     DEFAULT_API_TIMEOUT
 )
-from collectors.bronze import transform, upload_to_bq  
-from collectors.silver import process_silver_layer
+from src.collectors.bronze import transform, upload_to_bq
 
 logger = logging.getLogger(__name__)
 
@@ -126,12 +118,7 @@ def collect_realtime():
             total_count += len(df)
             logger.info(f"[{ymd}] Uploaded {len(df)} flights to Bronze")
             
-        # 3. Silver 정제 및 적재 (방금 업로드한 날짜들에 대해 수행)
-        if grouped:
-            logger.info("Starting Silver layer processing...")
-            process_silver_layer(list(grouped.keys()))
-            
-        logger.info(f"Done. Collected {total_count} flights and processed Silver layer.")
+        logger.info(f"Done. Collected {total_count} flights to Bronze.")
         
     except Exception:
         logger.exception("Failed to collect realtime flights")

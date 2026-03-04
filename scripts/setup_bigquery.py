@@ -32,8 +32,8 @@ def execute_sql_file(client: bigquery.Client, sql_file: Path, dry_run: bool = Fa
         job = client.query(sql)
         job.result()
         logger.info(f"Successfully executed {sql_file.name}")
-    except Exception as e:
-        logger.error(f"Error executing {sql_file.name}: {e}")
+    except Exception:
+        logger.exception(f"Error executing {sql_file.name}")
         raise
 
 def main():

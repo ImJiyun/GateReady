@@ -3,17 +3,10 @@ import logging
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from pathlib import Path
-import sys
 from zoneinfo import ZoneInfo
 
-# 프로젝트 루트(src) 경로 추가 (직접 실행 및 모듈 참조용)
-src_path = str(Path(__file__).resolve().parent.parent)
-if src_path not in sys.path:
-    sys.path.append(src_path)
-
-from bq import load_df_to_bq, get_bq_client
-from config import BRONZE_FLIGHTS_TABLE_ID, SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID
+from src.bq import load_df_to_bq, get_bq_client
+from src.config import BRONZE_FLIGHTS_TABLE_ID, SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID
 
 logger = logging.getLogger(__name__)
 
@@ -145,8 +138,8 @@ def process_silver_layer(ymd_list=None):
 
         logger.info("Silver layer processing completed successfully with MERGE.")
 
-    except Exception as e:
-        logger.error(f"Failed to merge Silver layer: {e}")
+    except Exception:
+        logger.exception("Failed to merge Silver layer")
         raise
 
     finally:

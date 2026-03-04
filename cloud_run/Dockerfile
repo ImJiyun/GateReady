@@ -12,11 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 4. 의존성 파일 복사 및 설치
 # 빌드 시 컨텍스트(. )를 루트로 줄 것이므로 .에서 찾음
-COPY requirements.txt .
+COPY requirements.txt pyproject.toml ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. 프로젝트 소스 코드 복사 (전체 복사)
 COPY . .
+
+# 6. src를 패키지로 설치 (sys.path 조작 불필요)
+RUN pip install --no-cache-dir -e .
 
 # 6. 로그 디렉토리 미리 생성 (권한 대비)
 RUN mkdir -p logs && chmod 777 logs

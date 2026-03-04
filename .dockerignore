@@ -1,0 +1,23 @@
+# 시크릿/환경변수 (절대 이미지에 포함되면 안 됨)
+.env
+.gcp/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# 로컬 개발 도구
+.gemini/
+notebooks/
+logs/
+
+# 문서
+README.md

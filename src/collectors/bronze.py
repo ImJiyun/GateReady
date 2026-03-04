@@ -4,22 +4,14 @@ from urllib3.util.retry import Retry
 import pandas as pd
 from datetime import datetime, timedelta, UTC, timezone
 from zoneinfo import ZoneInfo
-from bq import load_df_to_bq
 import os, re, json
 import time, random
 from dotenv import load_dotenv
-import sys
-from pathlib import Path
 import logging
 
-# 현재 파일의 부모 디렉토리(src/)를 시스템 경로에 추가하여 
-# 다른 모듈을 찾을 수 있게 합니다.
-src_path = str(Path(__file__).resolve().parent.parent)
-if src_path not in sys.path:
-    sys.path.append(src_path)
-
-from clients.session import build_session
-from config import BQ_PROJECT_ID, BRONZE_FLIGHTS_TABLE_ID, FLIGHT_API_URL, HEADERS, DEFAULT_API_TIMEOUT
+from src.bq import load_df_to_bq
+from src.clients.session import build_session
+from src.config import BQ_PROJECT_ID, BRONZE_FLIGHTS_TABLE_ID, FLIGHT_API_URL, HEADERS, DEFAULT_API_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +94,8 @@ def collect_bronze_range(start_date: str, end_date: str):
     # 세션 활성화를 위한 초기 요청
     try:
         session.get(FLIGHT_API_URL, timeout=DEFAULT_API_TIMEOUT)
-    except Exception as e:
-        logger.error(f"Failed to initialize session: {e}")
+    except Exception:
+        logger.exception("Failed to initialize session")
         return
 
     failed_days = []
@@ -122,8 +114,8 @@ def collect_bronze_range(start_date: str, end_date: str):
 
             logger.info(f"{ymd}: inserted {len(df)} rows")
 
-        except Exception as e:
-            logger.error(f"{ymd}: failed - {e}")
+        except Exception:
+            logger.exception(f"{ymd}: failed")
             failed_days.append(ymd)
 
             time.sleep(random.uniform(3.0, 6.0))
