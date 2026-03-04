@@ -36,6 +36,10 @@
 | **Silver** | `silver.flights_snapshots` | 상태 변화가 있는 스냅샷만 필터링 + 이상 시간값 정제     |
 | **Gold**   | (Tableau 연결)             | 지연 패턴 분석용 집계 테이블                            |
 
+### ERD
+
+![ERD](./docs/ERD.png)
+
 ## 설계 포인트
 
 ### ±3시간 수집 윈도우
