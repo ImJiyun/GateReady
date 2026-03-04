@@ -1,6 +1,7 @@
 steps:
-  # 1단계: Docker 이미지 빌드
-  # cloud_run 폴더 내부의 Dockerfile을 사용하며, 빌드 컨텍스트는 루트(.)로 설정합니다.
+  # ── Bronze Job ──────────────────────────────────────────
+
+  # 1-1: Bronze 이미지 빌드
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
@@ -12,12 +13,11 @@ steps:
         ".",
       ]
 
-  # 2단계: 이미지 푸시
+  # 1-2: Bronze 이미지 푸시
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/$PROJECT_ID/realtime-collector"]
 
-  # 3단계: Cloud Run Job 업데이트
-  # 새로 빌드된 이미지로 기존 배포된 Job을 갱신합니다.
+  # 1-3: Bronze Cloud Run Job 업데이트
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "gcloud"
     args:
@@ -30,10 +30,54 @@ steps:
       - "--region"
       - "asia-northeast3"
 
-# 빌드된 이미지를 Artifact Registry(또는 GCR)에 보관하도록 지정
+  # ── Silver Job ──────────────────────────────────────────
+
+  # 2-1: Silver 이미지 빌드
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/silver-collector",
+        "-f",
+        "cloud_run/Dockerfile.silver",
+        ".",
+      ]
+
+  # 2-2: Silver 이미지 푸시
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/silver-collector"]
+
+  # 2-3: Silver Cloud Run Job 업데이트
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "run"
+      - "jobs"
+      - "update"
+      - "silver-job"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/silver-collector"
+      - "--region"
+      - "asia-northeast3"
+
+  # ── Cloud Workflows 배포 ─────────────────────────────────
+
+  # 3: Workflows 정의 업데이트
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "workflows"
+      - "deploy"
+      - "bronze-silver-pipeline"
+      - "--source"
+      - "workflows/pipeline.yaml"
+      - "--location"
+      - "asia-northeast3"
+
 images:
   - "gcr.io/$PROJECT_ID/realtime-collector"
+  - "gcr.io/$PROJECT_ID/silver-collector"
 
-# 빌드 시 커스텀 서비스 계정을 사용하는 경우 로그 설정이 필수적입니다.
 options:
   logging: CLOUD_LOGGING_ONLY
