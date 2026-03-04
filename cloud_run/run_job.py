@@ -1,12 +1,5 @@
 import sys
 import logging
-from pathlib import Path
-
-# Add project root to sys.path
-# Now in cloud_run/run_job.py, so parent is root
-project_root = Path(__file__).resolve().parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 from src.logger import setup_logging
 from src.collectors.realtime import collect_realtime

@@ -1,0 +1,13 @@
+[project]
+name = "gateready"
+version = "0.1.0"
+description = "공항 게이트 출발 지연 예측 파이프라인"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

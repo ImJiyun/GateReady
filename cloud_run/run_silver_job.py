@@ -4,12 +4,6 @@ Cloud Workflows에 의해 Bronze Job 완료 후 순차적으로 실행됨
 """
 import sys
 import logging
-from pathlib import Path
-
-# 프로젝트 루트를 sys.path에 추가
-project_root = Path(__file__).resolve().parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 from src.logger import setup_logging
 from src.collectors.silver import process_silver_layer

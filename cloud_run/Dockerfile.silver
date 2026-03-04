@@ -10,12 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements.txt pyproject.toml ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN pip install --no-cache-dir -e .
+
 RUN mkdir -p logs && chmod 777 logs
 
-# Silver Job 진입점
 CMD ["python", "cloud_run/run_silver_job.py"]

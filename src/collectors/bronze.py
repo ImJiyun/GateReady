@@ -4,22 +4,14 @@ from urllib3.util.retry import Retry
 import pandas as pd
 from datetime import datetime, timedelta, UTC, timezone
 from zoneinfo import ZoneInfo
-from bq import load_df_to_bq
 import os, re, json
 import time, random
 from dotenv import load_dotenv
-import sys
-from pathlib import Path
 import logging
 
-# 현재 파일의 부모 디렉토리(src/)를 시스템 경로에 추가하여 
-# 다른 모듈을 찾을 수 있게 합니다.
-src_path = str(Path(__file__).resolve().parent.parent)
-if src_path not in sys.path:
-    sys.path.append(src_path)
-
-from clients.session import build_session
-from config import BQ_PROJECT_ID, BRONZE_FLIGHTS_TABLE_ID, FLIGHT_API_URL, HEADERS, DEFAULT_API_TIMEOUT
+from src.bq import load_df_to_bq
+from src.clients.session import build_session
+from src.config import BQ_PROJECT_ID, BRONZE_FLIGHTS_TABLE_ID, FLIGHT_API_URL, HEADERS, DEFAULT_API_TIMEOUT
 
 logger = logging.getLogger(__name__)
 

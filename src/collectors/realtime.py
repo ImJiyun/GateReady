@@ -1,26 +1,19 @@
 """
 실시간 데이터 수집 (10분마다)
 """
-import sys
-
-from pathlib import Path
 import requests
 import pandas as pd
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import logging
 from zoneinfo import ZoneInfo
-
-src_path = str(Path(__file__).resolve().parent.parent)
-if src_path not in sys.path:
-    sys.path.append(src_path)
     
-from clients.session import build_session
-from config import (
-    FLIGHT_API_URL, 
-    HEADERS, 
+from src.clients.session import build_session
+from src.config import (
+    FLIGHT_API_URL,
+    HEADERS,
     DEFAULT_API_TIMEOUT
 )
-from collectors.bronze import transform, upload_to_bq
+from src.collectors.bronze import transform, upload_to_bq
 
 logger = logging.getLogger(__name__)
 
