@@ -40,8 +40,8 @@ def main():
     try:
         process_silver_layer(target_ymds)
         logging.info("Silver Job execution completed successfully.")
-    except Exception as e:
-        logging.error(f"Silver Job failed: {e}")
+    except Exception:
+        logging.exception("Silver Job failed")
         sys.exit(1)
 
 

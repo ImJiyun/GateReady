@@ -145,8 +145,8 @@ def process_silver_layer(ymd_list=None):
 
         logger.info("Silver layer processing completed successfully with MERGE.")
 
-    except Exception as e:
-        logger.error(f"Failed to merge Silver layer: {e}")
+    except Exception:
+        logger.exception("Failed to merge Silver layer")
         raise
 
     finally:

@@ -17,8 +17,8 @@ def job():
     logging.info(f"Starting job...")
     try:
         collect_realtime()
-    except Exception as e:
-        logging.error(f"Job failed: {e}")
+    except Exception:
+        logging.exception("Job failed")
 
 # 즉시 한번 실행
 job()

@@ -19,8 +19,8 @@ def main():
     try:
         collect_realtime()
         logging.info("Realtime Job execution completed successfully.")
-    except Exception as e:
-        logging.error(f"Realtime Job failed: {e}")
+    except Exception:
+        logging.exception("Realtime Job failed")
         sys.exit(1)
 
 if __name__ == "__main__":

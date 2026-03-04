@@ -102,8 +102,8 @@ def collect_bronze_range(start_date: str, end_date: str):
     # 세션 활성화를 위한 초기 요청
     try:
         session.get(FLIGHT_API_URL, timeout=DEFAULT_API_TIMEOUT)
-    except Exception as e:
-        logger.error(f"Failed to initialize session: {e}")
+    except Exception:
+        logger.exception("Failed to initialize session")
         return
 
     failed_days = []
@@ -122,8 +122,8 @@ def collect_bronze_range(start_date: str, end_date: str):
 
             logger.info(f"{ymd}: inserted {len(df)} rows")
 
-        except Exception as e:
-            logger.error(f"{ymd}: failed - {e}")
+        except Exception:
+            logger.exception(f"{ymd}: failed")
             failed_days.append(ymd)
 
             time.sleep(random.uniform(3.0, 6.0))
