@@ -30,54 +30,40 @@ steps:
       - "--region"
       - "asia-northeast3"
 
-  # ── Silver Job ──────────────────────────────────────────
+  # ── Silver + Gold 통합 Job ───────────────────────────────
 
-  # 2-1: Silver 이미지 빌드
+  # 2-1: Silver+Gold 이미지 빌드
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
         "build",
         "-t",
-        "gcr.io/$PROJECT_ID/silver-collector",
+        "gcr.io/$PROJECT_ID/silver-gold-collector",
         "-f",
-        "cloud_run/Dockerfile.silver",
+        "cloud_run/Dockerfile.silver_gold",
         ".",
       ]
 
-  # 2-2: Silver 이미지 푸시
+  # 2-2: Silver+Gold 이미지 푸시
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/silver-collector"]
+    args: ["push", "gcr.io/$PROJECT_ID/silver-gold-collector"]
 
-  # 2-3: Silver Cloud Run Job 업데이트
+  # 2-3: Silver+Gold Cloud Run Job 업데이트
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "gcloud"
     args:
       - "run"
       - "jobs"
       - "update"
-      - "silver-job"
+      - "silver-gold-job"
       - "--image"
-      - "gcr.io/$PROJECT_ID/silver-collector"
+      - "gcr.io/$PROJECT_ID/silver-gold-collector"
       - "--region"
-      - "asia-northeast3"
-
-  # ── Cloud Workflows 배포 ─────────────────────────────────
-
-  # 3: Workflows 정의 업데이트
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: "gcloud"
-    args:
-      - "workflows"
-      - "deploy"
-      - "bronze-silver-pipeline"
-      - "--source"
-      - "workflows/pipeline.yaml"
-      - "--location"
       - "asia-northeast3"
 
 images:
   - "gcr.io/$PROJECT_ID/realtime-collector"
-  - "gcr.io/$PROJECT_ID/silver-collector"
+  - "gcr.io/$PROJECT_ID/silver-gold-collector"
 
 options:
   logging: CLOUD_LOGGING_ONLY
