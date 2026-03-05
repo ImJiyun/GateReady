@@ -1,0 +1,21 @@
+main:
+  steps:
+    # 프로젝트 ID를 변수로 먼저 할당
+    - init:
+        assign:
+          - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+
+    # Step 1: Silver + Gold 통합 Job 실행 (매일 오전 5시 KST)
+    # Silver: 전날 ymd의 Bronze 데이터를 정제하여 flights_snapshots에 MERGE
+    # Gold:   Silver 완료 후 Tableau용 테이블 2개를 CREATE OR REPLACE
+    - run_silver_gold:
+        call: googleapis.run.v1.namespaces.jobs.run
+        args:
+          name: ${"namespaces/" + project_id + "/jobs/silver-gold-job"}
+          location: asia-northeast3
+        result: silver_gold_result
+
+    # Step 2: 결과 반환
+    - return_result:
+        return:
+          silver_gold: ${silver_gold_result}
