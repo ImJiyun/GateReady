@@ -16,9 +16,13 @@ if creds_path and not os.path.isabs(creds_path):
     project_root = Path(__file__).resolve().parent.parent
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(project_root / creds_path.strip('"').strip("'"))
 
+BQ_DATASET_GOLD = os.getenv("BQ_DATASET_GOLD", "gold")
+
 BRONZE_FLIGHTS_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_BRONZE}.flights"
 BRONZE_AIRLINES_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_BRONZE}.airlines"
 SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_SILVER}.flights_snapshots"
+GOLD_TABLEAU_DASHBOARD_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_GOLD}.tableau_flights_dashboard"
+GOLD_DELAY_ESCALATION_TABLE_ID = f"{BQ_PROJECT_ID}.{BQ_DATASET_GOLD}.tableau_delay_escalation"
 
 # API
 FLIGHT_API_URL = os.getenv("FLIGHT_API_URL")
