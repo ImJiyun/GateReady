@@ -6,7 +6,7 @@ Silver + Gold 통합 Cloud Run Job 진입점
   1. Silver: 전날 ymd 데이터 전체를 Bronze에서 정제 → silver.flights_snapshots에 MERGE
   2. Gold:   Silver 결과를 기반으로 Tableau용 Gold 테이블 두 개를 CREATE OR REPLACE
 """
-import sys
+import os
 import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -27,26 +27,27 @@ def get_yesterday_ymd() -> str:
 def main():
     setup_logging("silver_gold_job")
 
-    yesterday_ymd = get_yesterday_ymd()
-    logging.info(f"=== Silver+Gold Job started | target date: {yesterday_ymd} ===")
+    # 환경변수로 날짜 주입 가능 (없으면 어제 날짜 사용)
+    target_ymd = os.environ.get("TARGET_YMD") or get_yesterday_ymd()
+    logging.info(f"=== Silver+Gold Job started | target date: {target_ymd} ===")
 
-    # ── Step 1: Silver ────────────────────────────────────────    
+    # Step 1: Silver
     logging.info("[1/2] Starting Silver layer processing...")
     try:
-        process_silver_layer(ymd_list=[yesterday_ymd])
+        process_silver_layer(ymd_list=[target_ymd])
         logging.info("[1/2] Silver layer processing completed.")
     except Exception:
         logging.exception("[1/2] Silver layer processing failed — aborting job")
-        sys.exit(1)
+        raise SystemExit(1)
 
-    # ── Step 2: Gold ──────────────────────────────────────────
+    # Step 2: Gold
     logging.info("[2/2] Starting Gold layer processing...")
     try:
         process_gold_layer()
         logging.info("[2/2] Gold layer processing completed.")
     except Exception:
         logging.exception("[2/2] Gold layer processing failed")
-        sys.exit(1)
+        raise SystemExit(1)
 
     logging.info("=== Silver+Gold Job completed ===")
 
