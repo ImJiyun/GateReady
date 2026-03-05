@@ -13,16 +13,7 @@ main:
           location: asia-northeast3
         result: bronze_result
 
-    # Step 2: Silver Job 실행 (Bronze 성공 시에만)
-    - run_silver:
-        call: googleapis.run.v1.namespaces.jobs.run
-        args:
-          name: ${"namespaces/" + project_id + "/jobs/silver-job"}
-          location: asia-northeast3
-        result: silver_result
-
-    # Step 3: 결과 반환
+    # Step 2: 결과 반환
     - return_result:
         return:
           bronze: ${bronze_result}
-          silver: ${silver_result}
