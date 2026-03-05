@@ -1,0 +1,22 @@
+# Silver + Gold 통합 Job Dockerfile
+# 매일 오전 5시(KST) 실행: Silver 정제 → Gold 집계
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt pyproject.toml ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN pip install --no-cache-dir -e .
+
+RUN mkdir -p logs && chmod 777 logs
+
+CMD ["python", "cloud_run/run_silver_gold_job.py"]
