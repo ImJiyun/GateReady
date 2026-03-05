@@ -4,6 +4,8 @@
 -- 데이터 소스: silver.flights (최신 상태) + bronze.flights (부가 정보)
 -- ──────────────────────────────────────────────
 
+DECLARE local_timezone STRING DEFAULT 'Asia/Seoul';
+
 CREATE OR REPLACE TABLE `gold.tableau_flights_dashboard` AS
 WITH base_flights AS (
   SELECT * FROM `silver.flights`
@@ -21,6 +23,16 @@ bronze_info AS (
       ROW_NUMBER() OVER(PARTITION BY flight_key ORDER BY collected_at DESC) AS rn
     FROM `bronze.flights`
   ) WHERE rn = 1
+),
+
+-- 타임존 변환을 위한 CTE
+tz_converted AS (
+  SELECT
+    *,
+    DATETIME(scheduled_utc, local_timezone) AS scheduled_kst,
+    DATETIME(expected_utc,  local_timezone) AS expected_kst,
+    DATETIME(actual_utc,    local_timezone) AS actual_kst
+  FROM base_flights
 )
 
 SELECT
@@ -38,18 +50,18 @@ SELECT
   f.scheduled_utc,
   f.expected_utc,
   f.actual_utc,
-  DATETIME(f.scheduled_utc, 'Asia/Seoul') AS scheduled_kst,
-  DATETIME(f.expected_utc,  'Asia/Seoul') AS expected_kst,
-  DATETIME(f.actual_utc,    'Asia/Seoul') AS actual_kst,
-  EXTRACT(DATE FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) AS scheduled_date,        -- KST 날짜
-  EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) AS scheduled_hour,        -- KST 시각
-  EXTRACT(DAYOFWEEK FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) AS scheduled_day_of_week,  -- 1=일, 7=토
+  f.scheduled_kst,
+  f.expected_kst,
+  f.actual_kst,
+  EXTRACT(DATE FROM f.scheduled_kst) AS scheduled_date,        -- KST 날짜
+  EXTRACT(HOUR FROM f.scheduled_kst) AS scheduled_hour,        -- KST 시각
+  EXTRACT(DAYOFWEEK FROM f.scheduled_kst) AS scheduled_day_of_week,  -- 1=일, 7=토
   
   -- 시간대 그룹 
   CASE 
-    WHEN EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) BETWEEN 5  AND 11 THEN '오전 (05-11시)'
-    WHEN EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) BETWEEN 12 AND 17 THEN '오후 (12-17시)'
-    WHEN EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) BETWEEN 18 AND 22 THEN '저녁 (18-22시)'
+    WHEN EXTRACT(HOUR FROM f.scheduled_kst) BETWEEN 5  AND 11 THEN '오전 (05-11시)'
+    WHEN EXTRACT(HOUR FROM f.scheduled_kst) BETWEEN 12 AND 17 THEN '오후 (12-17시)'
+    WHEN EXTRACT(HOUR FROM f.scheduled_kst) BETWEEN 18 AND 22 THEN '저녁 (18-22시)'
     ELSE '심야/새벽 (23-04시)'
   END AS time_of_day,
   
@@ -77,7 +89,7 @@ SELECT
   CASE WHEN f.current_delay_min > 15 THEN 1 ELSE 0 END AS is_delayed_15min,
   CASE WHEN f.status = '취소' THEN 1 ELSE 0 END AS is_canceled
 
-FROM base_flights f
+FROM tz_converted f
 INNER JOIN bronze_info b 
   ON f.flight_key = b.flight_key
 WHERE b.nature = '여객';

@@ -5,6 +5,7 @@
 -- "지금 X분 지연이면, 최종적으로 얼마나 지연될까?" 분석
 -- 데이터 소스: silver.flights_snapshots (전체 스냅샷 이력)
 -- ──────────────────────────────────────────────
+DECLARE local_timezone STRING DEFAULT 'Asia/Seoul';
 
 CREATE OR REPLACE TABLE `gold.tableau_delay_escalation` AS
 
@@ -40,6 +41,16 @@ last_snapshot AS (
   ) WHERE rn = 1
 ),
 
+-- 타임존 변환을 위한 CTE
+tz_converted_last_snapshot AS (
+  SELECT
+    *,
+    DATETIME(scheduled_utc, local_timezone) AS scheduled_kst,
+    DATETIME(expected_utc,  local_timezone) AS expected_kst,
+    DATETIME(actual_utc,    local_timezone) AS actual_kst
+  FROM last_snapshot
+),
+
 -- Bronze에서 부가 정보 (한글명 등)
 bronze_info AS (
   SELECT * FROM (
@@ -63,11 +74,11 @@ SELECT
   b.arr_airport_kr,
   b.nature,                         -- 운항 유형 (화물/여객/기타)
   l.ymd,
-  EXTRACT(DATE FROM DATETIME(l.scheduled_utc, 'Asia/Seoul')) AS scheduled_date,  
+  EXTRACT(DATE FROM l.scheduled_kst) AS scheduled_date,  
   l.scheduled_utc,
-  DATETIME(l.scheduled_utc, 'Asia/Seoul') AS scheduled_kst,
-  DATETIME(l.expected_utc,  'Asia/Seoul') AS expected_kst,
-  DATETIME(l.actual_utc,    'Asia/Seoul') AS actual_kst,
+  l.scheduled_kst,
+  l.expected_kst,
+  l.actual_kst,
   
   -- 최초 관측 시점
   f.initial_delay_min,
@@ -103,7 +114,7 @@ SELECT
     ELSE '개선 (단축됨)'
   END AS delay_trend
 
-FROM last_snapshot l
+FROM tz_converted_last_snapshot l
 JOIN first_snapshot f ON l.flight_key = f.flight_key
 INNER JOIN bronze_info b ON l.flight_key = b.flight_key
 WHERE b.nature = '여객';
