@@ -63,8 +63,11 @@ SELECT
   b.arr_airport_kr,
   b.nature,                         -- 운항 유형 (화물/여객/기타)
   l.ymd,
-  EXTRACT(DATE FROM l.scheduled_utc) AS scheduled_date,
+  EXTRACT(DATE FROM DATETIME(l.scheduled_utc, 'Asia/Seoul')) AS scheduled_date,  
   l.scheduled_utc,
+  DATETIME(l.scheduled_utc, 'Asia/Seoul') AS scheduled_kst,
+  DATETIME(l.expected_utc,  'Asia/Seoul') AS expected_kst,
+  DATETIME(l.actual_utc,    'Asia/Seoul') AS actual_kst,
   
   -- 최초 관측 시점
   f.initial_delay_min,

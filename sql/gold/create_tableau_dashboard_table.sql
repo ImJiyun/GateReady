@@ -34,19 +34,22 @@ SELECT
   b.arr_airport_kr,                 -- 도착 공항 한글명 (ex: 나리타)
   b.nature,                         -- 운항 유형 (화물/여객/기타)
   
-  -- ── 시간 관련 ──
+  -- ── 시간 관련 (KST 기준) ──
   f.scheduled_utc,
   f.expected_utc,
   f.actual_utc,
-  EXTRACT(DATE FROM f.scheduled_utc) AS scheduled_date,
-  EXTRACT(HOUR FROM f.scheduled_utc) AS scheduled_hour,
-  EXTRACT(DAYOFWEEK FROM f.scheduled_utc) AS scheduled_day_of_week,   -- 1=일, 7=토
+  DATETIME(f.scheduled_utc, 'Asia/Seoul') AS scheduled_kst,
+  DATETIME(f.expected_utc,  'Asia/Seoul') AS expected_kst,
+  DATETIME(f.actual_utc,    'Asia/Seoul') AS actual_kst,
+  EXTRACT(DATE FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) AS scheduled_date,        -- KST 날짜
+  EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) AS scheduled_hour,        -- KST 시각
+  EXTRACT(DAYOFWEEK FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) AS scheduled_day_of_week,  -- 1=일, 7=토
   
-  -- 시간대 그룹 (태블로 필터용)
+  -- 시간대 그룹 
   CASE 
-    WHEN EXTRACT(HOUR FROM f.scheduled_utc) BETWEEN 5 AND 11 THEN '오전 (05-11시)'
-    WHEN EXTRACT(HOUR FROM f.scheduled_utc) BETWEEN 12 AND 17 THEN '오후 (12-17시)'
-    WHEN EXTRACT(HOUR FROM f.scheduled_utc) BETWEEN 18 AND 22 THEN '저녁 (18-22시)'
+    WHEN EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) BETWEEN 5  AND 11 THEN '오전 (05-11시)'
+    WHEN EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) BETWEEN 12 AND 17 THEN '오후 (12-17시)'
+    WHEN EXTRACT(HOUR FROM DATETIME(f.scheduled_utc, 'Asia/Seoul')) BETWEEN 18 AND 22 THEN '저녁 (18-22시)'
     ELSE '심야/새벽 (23-04시)'
   END AS time_of_day,
   
