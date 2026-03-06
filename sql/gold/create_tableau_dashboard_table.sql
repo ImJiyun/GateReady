@@ -5,6 +5,10 @@
 -- ──────────────────────────────────────────────
 
 DECLARE local_timezone STRING DEFAULT 'Asia/Seoul';
+DECLARE delay_threshold_15 INT64 DEFAULT 15;
+DECLARE delay_threshold_30 INT64 DEFAULT 30;
+DECLARE delay_threshold_60 INT64 DEFAULT 60;
+DECLARE delay_threshold_120 INT64 DEFAULT 120;
 
 CREATE OR REPLACE TABLE `gold.tableau_flights_dashboard` AS
 WITH base_flights AS (
@@ -79,17 +83,18 @@ SELECT
   CASE 
     WHEN f.current_delay_min IS NULL THEN '정보없음'
     WHEN f.current_delay_min <= 0 THEN '정시 운항'
-    WHEN f.current_delay_min <= 15 THEN '경미한 지연 (15분 이하)'
-    WHEN f.current_delay_min <= 60 THEN '보통 지연 (15분~1시간)'
-    WHEN f.current_delay_min <= 120 THEN '심각한 지연 (1~2시간)'
+    WHEN f.current_delay_min <= delay_threshold_15 THEN '경미한 지연 (15분 이하)'
+    WHEN f.current_delay_min <= delay_threshold_30 THEN '보통 지연 (15분~1시간)'
+    WHEN f.current_delay_min <= delay_threshold_60 THEN '심각한 지연 (1~2시간)'
+    WHEN f.current_delay_min <= delay_threshold_120 THEN '매우 심각한 지연 (2시간 초과)'
     ELSE '매우 심각한 지연 (2시간 초과)'
   END AS delay_category,
   
   -- 통계 계산용 플래그
-  CASE WHEN f.current_delay_min > 15 THEN 1 ELSE 0 END AS is_delayed_15min,
-  CASE WHEN f.current_delay_min > 30 THEN 1 ELSE 0 END AS is_delayed_30min,
-  CASE WHEN f.current_delay_min > 60 THEN 1 ELSE 0 END AS is_delayed_60min,
-  CASE WHEN f.current_delay_min > 120 THEN 1 ELSE 0 END AS is_delayed_120min,
+  CASE WHEN f.current_delay_min > delay_threshold_15 THEN 1 ELSE 0 END AS is_delayed_15min,
+  CASE WHEN f.current_delay_min > delay_threshold_30 THEN 1 ELSE 0 END AS is_delayed_30min,
+  CASE WHEN f.current_delay_min > delay_threshold_60 THEN 1 ELSE 0 END AS is_delayed_60min,
+  CASE WHEN f.current_delay_min > delay_threshold_120 THEN 1 ELSE 0 END AS is_delayed_120min,
   CASE WHEN f.status = '취소' THEN 1 ELSE 0 END AS is_canceled
 
 FROM tz_converted f
