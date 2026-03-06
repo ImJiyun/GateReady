@@ -87,6 +87,9 @@ SELECT
   
   -- 통계 계산용 플래그
   CASE WHEN f.current_delay_min > 15 THEN 1 ELSE 0 END AS is_delayed_15min,
+  CASE WHEN f.current_delay_min > 30 THEN 1 ELSE 0 END AS is_delayed_30min,
+  CASE WHEN f.current_delay_min > 60 THEN 1 ELSE 0 END AS is_delayed_60min,
+  CASE WHEN f.current_delay_min > 120 THEN 1 ELSE 0 END AS is_delayed_120min,
   CASE WHEN f.status = '취소' THEN 1 ELSE 0 END AS is_canceled
 
 FROM tz_converted f
