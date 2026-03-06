@@ -83,11 +83,11 @@ SELECT
   CASE 
     WHEN f.current_delay_min IS NULL THEN '정보없음'
     WHEN f.current_delay_min <= 0 THEN '정시 운항'
-    WHEN f.current_delay_min <= delay_threshold_15 THEN '경미한 지연 (15분 이하)'
-    WHEN f.current_delay_min <= delay_threshold_30 THEN '보통 지연 (15분~1시간)'
-    WHEN f.current_delay_min <= delay_threshold_60 THEN '심각한 지연 (1~2시간)'
-    WHEN f.current_delay_min <= delay_threshold_120 THEN '매우 심각한 지연 (2시간 초과)'
-    ELSE '매우 심각한 지연 (2시간 초과)'
+    WHEN f.current_delay_min <= delay_threshold_15 THEN '15분 이하 지연'
+    WHEN f.current_delay_min <= delay_threshold_30 THEN '15~30분 지연'
+    WHEN f.current_delay_min <= delay_threshold_60 THEN '30~60분 지연'
+    WHEN f.current_delay_min <= delay_threshold_120 THEN '1~2시간 지연'
+    ELSE '2시간 이상 지연'
   END AS delay_category,
   
   -- 통계 계산용 플래그
