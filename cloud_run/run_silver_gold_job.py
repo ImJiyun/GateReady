@@ -1,6 +1,6 @@
 """
 Silver + Gold 통합 Cloud Run Job 진입점
-매일 오전 5시(KST) Cloud Scheduler → Cloud Workflows에 의해 실행됩니다.
+매일 오전 5시(KST) Cloud Scheduler에 의해 실행됩니다.
 
 실행 순서:
   1. Silver: 전날 ymd 데이터 전체를 Bronze에서 정제 → silver.flights_snapshots에 MERGE
