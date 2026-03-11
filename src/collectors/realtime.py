@@ -60,7 +60,7 @@ def fetch_current_flights(session: requests.Session) -> list[tuple[dict, str]]:
     현재 진행 중인 항공편 조회 (다중 윈도우 지원)
     Returns: list of (record_dict, ymd_string) 튜플
     """
-    windows = get_time_windows()
+    windows = get_time_windows(hours_before=5, hours_after=3)
     all_results = []
     
     for ymd, start_time, end_time in windows:
