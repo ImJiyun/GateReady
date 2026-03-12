@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `PROJECT_ID.silver.flights_snapshots` (
   actual_utc TIMESTAMP,       -- 정제된 실제 시간 (UTC)
   
   status STRING,            -- 항공 상태 (출발, 지연 등)
+  status_remark STRING,     -- 지연 사유 (예: 기상, 정비 등)
   current_delay_min FLOAT64, -- 계산된 지연 시간 (분)
   
   collected_at TIMESTAMP,   -- 데이터 수집 시점 (Snapshot 시점, UTC)

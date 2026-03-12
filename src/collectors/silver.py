@@ -92,9 +92,14 @@ def process_silver_layer(ymd_list=None):
     df = df.sort_values(['flight_key', 'collected_at'])
     df['prev_expected'] = df.groupby('flight_key')['expected_utc'].shift(1)
     df['prev_status'] = df.groupby('flight_key')['status'].shift(1)
+    df['prev_status_remark'] = df.groupby('flight_key')['status_remark'].shift(1)
 
     # 상태가 변했거나, 첫 데이터인 경우만 필터링
-    is_changed = (df['expected_utc'] != df['prev_expected']) | (df['status'] != df['prev_status'])
+    is_changed = (
+        (df['expected_utc'] != df['prev_expected']) |
+        (df['status'] != df['prev_status']) |
+        (df['status_remark'] != df['prev_status_remark'])
+    )
     history_df = df[is_changed].copy()
 
     # 5. Silver History 테이블에 MERGE (중복 방지)
@@ -104,8 +109,8 @@ def process_silver_layer(ymd_list=None):
 
     # 필요한 컬럼만 선택
     target_columns = [
-        'flight_key', 'airline_icao', 'flight_iata', 'scheduled_utc', 
-        'expected_utc', 'actual_utc', 'status', 'current_delay_min', 
+        'flight_key', 'airline_icao', 'flight_iata', 'scheduled_utc',
+        'expected_utc', 'actual_utc', 'status', 'status_remark', 'current_delay_min',
         'collected_at', 'ymd'
     ]
     final_df = history_df[target_columns].copy()
@@ -129,8 +134,8 @@ def process_silver_layer(ymd_list=None):
         USING `{staging_table_id}` S
         ON T.flight_key = S.flight_key AND T.collected_at = S.collected_at
         WHEN NOT MATCHED THEN
-          INSERT (flight_key, airline_icao, flight_iata, scheduled_utc, expected_utc, actual_utc, status, current_delay_min, collected_at, ymd)
-          VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.current_delay_min, S.collected_at, S.ymd)
+          INSERT (flight_key, airline_icao, flight_iata, scheduled_utc, expected_utc, actual_utc, status, status_remark, current_delay_min, collected_at, ymd)
+          VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.status_remark, S.current_delay_min, S.collected_at, S.ymd)
         """
 
         logger.info("Executing MERGE into production Silver table...")
