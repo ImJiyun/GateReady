@@ -189,12 +189,17 @@ def process_silver_layer(ymd_list=None):
     df['prev_status'] = df.groupby('flight_key')['status'].shift(1)
     df['prev_status_remark'] = df.groupby('flight_key')['status_remark'].shift(1)
 
-    # 상태가 변했거나, 첫 데이터인 경우만 필터링
-    is_changed = (
-        (df['expected_utc'] != df['prev_expected']) |
-        (df['status'] != df['prev_status']) |
-        (df['status_remark'] != df['prev_status_remark'])
+    # NaN-safe 변경 감지: pandas에서 NaN != NaN은 True를 반환하므로 명시적 처리 필요
+    # Timestamp: 둘 다 NaN이면 변경 없음으로 처리
+    expected_changed = ~(
+        (df['expected_utc'] == df['prev_expected']) |
+        (df['expected_utc'].isna() & df['prev_expected'].isna())
     )
+    # String: fillna('')로 NaN을 동일 값으로 치환 후 비교
+    status_changed = df['status'].fillna('') != df['prev_status'].fillna('')
+    remark_changed = df['status_remark'].fillna('') != df['prev_status_remark'].fillna('')
+
+    is_changed = expected_changed | status_changed | remark_changed
     history_df = df[is_changed].copy()
 
     # 5. Silver History 테이블에 MERGE (중복 방지)
