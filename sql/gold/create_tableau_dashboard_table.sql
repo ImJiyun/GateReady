@@ -63,6 +63,8 @@ SELECT
     ELSE status
   END AS status,
   status_remark,
+  status_remark_code,
+  delay_reason_category,
 
   -- 지연 분석
   current_delay_min,
