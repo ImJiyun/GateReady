@@ -109,8 +109,10 @@ def process_silver_layer(ymd_list=None):
 
     # 필요한 컬럼만 선택
     target_columns = [
-        'flight_key', 'airline_icao', 'flight_iata', 'scheduled_utc',
-        'expected_utc', 'actual_utc', 'status', 'status_remark', 'current_delay_min',
+        'flight_key', 'airline_icao', 'airline_kr', 'flight_iata',
+        'arr_airport_iata', 'arr_airport_kr', 'nature',
+        'scheduled_utc', 'expected_utc', 'actual_utc',
+        'status', 'status_remark', 'current_delay_min',
         'collected_at', 'ymd'
     ]
     final_df = history_df[target_columns].copy()
@@ -134,8 +136,8 @@ def process_silver_layer(ymd_list=None):
         USING `{staging_table_id}` S
         ON T.flight_key = S.flight_key AND T.collected_at = S.collected_at
         WHEN NOT MATCHED THEN
-          INSERT (flight_key, airline_icao, flight_iata, scheduled_utc, expected_utc, actual_utc, status, status_remark, current_delay_min, collected_at, ymd)
-          VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.status_remark, S.current_delay_min, S.collected_at, S.ymd)
+          INSERT (flight_key, airline_icao, airline_kr, flight_iata, arr_airport_iata, arr_airport_kr, nature, scheduled_utc, expected_utc, actual_utc, status, status_remark, current_delay_min, collected_at, ymd)
+          VALUES (S.flight_key, S.airline_icao, S.airline_kr, S.flight_iata, S.arr_airport_iata, S.arr_airport_kr, S.nature, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.status_remark, S.current_delay_min, S.collected_at, S.ymd)
         """
 
         logger.info("Executing MERGE into production Silver table...")
