@@ -85,4 +85,4 @@ SELECT
   CASE WHEN status = '취소' THEN 1 ELSE 0 END AS is_canceled
 
 FROM tz_converted 
-WHERE f.nature = '여객';
+WHERE nature = '여객';
