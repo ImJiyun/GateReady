@@ -1,7 +1,11 @@
 CREATE TABLE IF NOT EXISTS `PROJECT_ID.silver.flights_snapshots` (
   flight_key STRING,
   airline_icao STRING,
+  airline_kr STRING,        -- 항공사 한글명 (예: 대한항공)
   flight_iata STRING,
+  arr_airport_iata STRING,  -- 도착 공항 코드 (예: NRT)
+  arr_airport_kr STRING,    -- 도착 공항 한글명 (예: 나리타)
+  nature STRING,            -- 운항 유형 (여객/화물/기타)
   
   scheduled_utc TIMESTAMP,    -- 정제된 예정 시간 (UTC)
   expected_utc TIMESTAMP,     -- 정제된 예상 시간 (UTC)
