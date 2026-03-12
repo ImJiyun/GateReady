@@ -80,4 +80,7 @@ build/
 # Logs
 logs/
 
+# claude
+.claude/
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows

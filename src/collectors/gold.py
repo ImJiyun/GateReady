@@ -12,7 +12,6 @@ from pathlib import Path
 from src.bq import get_bq_client
 from src.config import (
     BQ_PROJECT_ID,
-    BQ_DATASET_BRONZE,
     BQ_DATASET_SILVER,
     BQ_DATASET_GOLD,
 )
@@ -31,7 +30,6 @@ def _load_sql(filename: str) -> str:
     sql = (_SQL_DIR / filename).read_text(encoding="utf-8")
     sql = sql.replace("`gold.",   f"`{BQ_PROJECT_ID}.{BQ_DATASET_GOLD}.")
     sql = sql.replace("`silver.", f"`{BQ_PROJECT_ID}.{BQ_DATASET_SILVER}.")
-    sql = sql.replace("`bronze.", f"`{BQ_PROJECT_ID}.{BQ_DATASET_BRONZE}.")
     return sql
 
 

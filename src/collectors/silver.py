@@ -7,10 +7,16 @@ from zoneinfo import ZoneInfo
 
 from src.bq import load_df_to_bq, get_bq_client
 from src.config import BRONZE_FLIGHTS_TABLE_ID, SILVER_FLIGHTS_SNAPSHOTS_TABLE_ID
+from src.delay_codes import DELAY_REASON_CATEGORY_MAP
 
 logger = logging.getLogger(__name__)
 
 KST = ZoneInfo("Asia/Seoul")
+
+def get_delay_reason_category(code):
+    if pd.isna(code) or not isinstance(code, str) or not code.strip():
+        return None
+    return DELAY_REASON_CATEGORY_MAP.get(code.strip().upper(), '기타')
 
 def clean_flight_time(time_str):
     """
@@ -88,13 +94,26 @@ def process_silver_layer(ymd_list=None):
     ]
     df['current_delay_min'] = np.select(conditions, choices, default=np.nan)
 
-    # 4. 중복 스냅샷 제거 
+    # 4. 지연 사유 대분류 매핑
+    df['delay_reason_category'] = df['status_remark_code'].apply(get_delay_reason_category)
+
+    # 5. 중복 스냅샷 제거 
     df = df.sort_values(['flight_key', 'collected_at'])
     df['prev_expected'] = df.groupby('flight_key')['expected_utc'].shift(1)
     df['prev_status'] = df.groupby('flight_key')['status'].shift(1)
+    df['prev_status_remark'] = df.groupby('flight_key')['status_remark'].shift(1)
 
-    # 상태가 변했거나, 첫 데이터인 경우만 필터링
-    is_changed = (df['expected_utc'] != df['prev_expected']) | (df['status'] != df['prev_status'])
+    # NaN-safe 변경 감지: pandas에서 NaN != NaN은 True를 반환하므로 명시적 처리 필요
+    # Timestamp: 둘 다 NaN이면 변경 없음으로 처리
+    expected_changed = ~(
+        (df['expected_utc'] == df['prev_expected']) |
+        (df['expected_utc'].isna() & df['prev_expected'].isna())
+    )
+    # String: fillna('')로 NaN을 동일 값으로 치환 후 비교
+    status_changed = df['status'].fillna('') != df['prev_status'].fillna('')
+    remark_changed = df['status_remark'].fillna('') != df['prev_status_remark'].fillna('')
+
+    is_changed = expected_changed | status_changed | remark_changed
     history_df = df[is_changed].copy()
 
     # 5. Silver History 테이블에 MERGE (중복 방지)
@@ -104,9 +123,11 @@ def process_silver_layer(ymd_list=None):
 
     # 필요한 컬럼만 선택
     target_columns = [
-        'flight_key', 'airline_icao', 'flight_iata', 'scheduled_utc', 
-        'expected_utc', 'actual_utc', 'status', 'current_delay_min', 
-        'collected_at', 'ymd'
+        'flight_key', 'airline_icao', 'airline_kr', 'flight_iata',
+        'arr_airport_iata', 'arr_airport_kr', 'nature',
+        'scheduled_utc', 'expected_utc', 'actual_utc',
+        'status', 'status_remark', 'status_remark_code', 'delay_reason_category',
+        'current_delay_min', 'collected_at', 'ymd'
     ]
     final_df = history_df[target_columns].copy()
 
@@ -129,8 +150,8 @@ def process_silver_layer(ymd_list=None):
         USING `{staging_table_id}` S
         ON T.flight_key = S.flight_key AND T.collected_at = S.collected_at
         WHEN NOT MATCHED THEN
-          INSERT (flight_key, airline_icao, flight_iata, scheduled_utc, expected_utc, actual_utc, status, current_delay_min, collected_at, ymd)
-          VALUES (S.flight_key, S.airline_icao, S.flight_iata, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.current_delay_min, S.collected_at, S.ymd)
+          INSERT (flight_key, airline_icao, airline_kr, flight_iata, arr_airport_iata, arr_airport_kr, nature, scheduled_utc, expected_utc, actual_utc, status, status_remark, status_remark_code, delay_reason_category, current_delay_min, collected_at, ymd)
+          VALUES (S.flight_key, S.airline_icao, S.airline_kr, S.flight_iata, S.arr_airport_iata, S.arr_airport_kr, S.nature, S.scheduled_utc, S.expected_utc, S.actual_utc, S.status, S.status_remark, S.status_remark_code, S.delay_reason_category, S.current_delay_min, S.collected_at, S.ymd)
         """
 
         logger.info("Executing MERGE into production Silver table...")

@@ -12,7 +12,7 @@ CREATE OR REPLACE TABLE `gold.tableau_delay_escalation` AS
 WITH first_snapshot AS (
   -- 항공편별 첫 번째 관측 (최초 포착된 상태)
   SELECT * FROM (
-    SELECT 
+    SELECT
       flight_key,
       current_delay_min AS initial_delay_min,
       status AS initial_status,
@@ -25,10 +25,14 @@ WITH first_snapshot AS (
 last_snapshot AS (
   -- 항공편별 마지막 관측 (최종 확정 상태)
   SELECT * FROM (
-    SELECT 
+    SELECT
       flight_key,
       airline_icao,
+      airline_kr,
       flight_iata,
+      arr_airport_iata,
+      arr_airport_kr,
+      nature,
       scheduled_utc,
       expected_utc,
       actual_utc,
@@ -49,20 +53,6 @@ tz_converted_last_snapshot AS (
     DATETIME(expected_utc,  local_timezone) AS expected_kst,
     DATETIME(actual_utc,    local_timezone) AS actual_kst
   FROM last_snapshot
-),
-
--- Bronze에서 부가 정보 (한글명 등)
-bronze_info AS (
-  SELECT * FROM (
-    SELECT 
-      flight_key,
-      airline_kr,
-      arr_airport_iata,
-      arr_airport_kr,
-      nature,
-      ROW_NUMBER() OVER(PARTITION BY flight_key ORDER BY collected_at DESC) AS rn
-    FROM `bronze.flights`
-  ) WHERE rn = 1
 )
 
 SELECT
@@ -70,32 +60,32 @@ SELECT
   l.flight_key,
   l.airline_icao,
   l.flight_iata,
-  b.airline_kr,
-  b.arr_airport_kr,
-  b.nature,                         -- 운항 유형 (화물/여객/기타)
+  l.airline_kr,
+  l.arr_airport_kr,
+  l.nature,                         -- 운항 유형 (화물/여객/기타)
   l.ymd,
-  EXTRACT(DATE FROM l.scheduled_kst) AS scheduled_date,  
+  EXTRACT(DATE FROM l.scheduled_kst) AS scheduled_date,
   l.scheduled_utc,
   l.scheduled_kst,
   l.expected_kst,
   l.actual_kst,
-  
+
   -- 최초 관측 시점
   f.initial_delay_min,
   f.initial_status,
   f.first_collected_at,
-  
+
   -- 최종 확정 시점
   l.final_delay_min,
   l.final_status,
   l.last_collected_at,
-  
+
   -- 추가 지연
   l.final_delay_min - f.initial_delay_min AS additional_delay_min,
-  
+
   -- 관측 기간 (분)
   TIMESTAMP_DIFF(l.last_collected_at, f.first_collected_at, MINUTE) AS observation_duration_min,
-  
+
   -- 초기 지연 구간 (Tableau 행/색상 기준)
   CASE
     WHEN f.initial_delay_min <= 0 THEN '정시 (0분 이하)'
@@ -105,7 +95,7 @@ SELECT
     WHEN f.initial_delay_min <= 120 THEN '심각 (1~2시간)'
     ELSE '매우 심각 (2시간 초과)'
   END AS initial_delay_bucket,
-  
+
   -- 지연 변화 방향
   CASE
     WHEN l.final_delay_min - f.initial_delay_min > 15 THEN '악화 (+15분 이상)'
@@ -116,5 +106,4 @@ SELECT
 
 FROM tz_converted_last_snapshot l
 JOIN first_snapshot f ON l.flight_key = f.flight_key
-INNER JOIN bronze_info b ON l.flight_key = b.flight_key
-WHERE b.nature = '여객';
+WHERE l.nature = '여객';
