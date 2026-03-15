@@ -10,7 +10,10 @@ DECLARE local_timezone STRING DEFAULT 'Asia/Seoul';
 CREATE OR REPLACE TABLE `gold.tableau_delay_escalation` AS
 
 WITH first_snapshot AS (
-  -- 항공편별 첫 번째 관측 (최초 포착된 상태)
+  -- 항공편별 첫 번째 지연 관측 (current_delay_min > 0인 첫 스냅샷)
+  -- NOTE: 최초 수집 시점이 아닌, 지연이 처음 감지된 시점을 initial_delay_min으로 사용.
+  --       0분 스냅샷을 initial로 쓰면 "항상 정시였다가 갑자기 지연"된 항공편이
+  --       scatter chart에서 (0, N) 형태로 찍혀 분석 왜곡.
   SELECT * FROM (
     SELECT
       flight_key,
@@ -19,6 +22,7 @@ WITH first_snapshot AS (
       collected_at AS first_collected_at,
       ROW_NUMBER() OVER(PARTITION BY flight_key ORDER BY collected_at ASC) AS rn
     FROM `silver.flights_snapshots`
+    WHERE current_delay_min > 0
   ) WHERE rn = 1
 ),
 
@@ -81,13 +85,15 @@ SELECT
   l.last_collected_at,
 
   -- 추가 지연
-  l.final_delay_min - f.initial_delay_min AS additional_delay_min,
+  -- initial_delay_min이 NULL이면 처음부터 지연 공지 없이 바로 지연된 케이스
+  l.final_delay_min - COALESCE(f.initial_delay_min, 0) AS additional_delay_min,
 
   -- 관측 기간 (분)
   TIMESTAMP_DIFF(l.last_collected_at, f.first_collected_at, MINUTE) AS observation_duration_min,
 
   -- 초기 지연 구간 (Tableau 행/색상 기준)
   CASE
+    WHEN f.initial_delay_min IS NULL THEN '공지 없음 (즉시 지연)'
     WHEN f.initial_delay_min <= 0 THEN '정시 (0분 이하)'
     WHEN f.initial_delay_min <= 15 THEN '경미 (1~15분)'
     WHEN f.initial_delay_min <= 30 THEN '보통 (16~30분)'
@@ -98,6 +104,7 @@ SELECT
 
   -- 지연 변화 방향
   CASE
+    WHEN f.initial_delay_min IS NULL THEN '공지 없음 (즉시 지연)'
     WHEN l.final_delay_min - f.initial_delay_min > 15 THEN '악화 (+15분 이상)'
     WHEN l.final_delay_min - f.initial_delay_min > 0 THEN '소폭 악화'
     WHEN l.final_delay_min - f.initial_delay_min = 0 THEN '변동 없음'
@@ -105,5 +112,5 @@ SELECT
   END AS delay_trend
 
 FROM tz_converted_last_snapshot l
-JOIN first_snapshot f ON l.flight_key = f.flight_key
+LEFT JOIN first_snapshot f ON l.flight_key = f.flight_key
 WHERE l.nature = '여객';
