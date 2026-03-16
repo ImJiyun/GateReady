@@ -1,4 +1,4 @@
-\-- ──────────────────────────────────────────────
+-- ──────────────────────────────────────────────
 -- Gold Table 2: 지연 확대 분석용
 -- 갱신 주기: 매일 1회 (BigQuery Scheduled Query)
 -- 항공편별 "최초 관측 지연 → 최종 지연"을 비교하여
@@ -6,6 +6,10 @@
 -- 데이터 소스: silver.flights_snapshots (전체 스냅샷 이력)
 -- ──────────────────────────────────────────────
 DECLARE local_timezone STRING DEFAULT 'Asia/Seoul';
+DECLARE delay_threshold_15 INT64 DEFAULT 15;
+DECLARE delay_threshold_30 INT64 DEFAULT 30;
+DECLARE delay_threshold_60 INT64 DEFAULT 60;
+DECLARE delay_threshold_120 INT64 DEFAULT 120;
 
 CREATE OR REPLACE TABLE `gold.tableau_delay_escalation` AS
 
@@ -101,17 +105,17 @@ SELECT
   CASE
     WHEN f.initial_delay_min IS NULL THEN '공지 없음 (즉시 지연)'
     WHEN f.initial_delay_min <= 0 THEN '정시 (0분 이하)'
-    WHEN f.initial_delay_min <= 15 THEN '경미 (1~15분)'
-    WHEN f.initial_delay_min <= 30 THEN '보통 (16~30분)'
-    WHEN f.initial_delay_min <= 60 THEN '지연 (31~60분)'
-    WHEN f.initial_delay_min <= 120 THEN '심각 (1~2시간)'
+    WHEN f.initial_delay_min <= delay_threshold_15 THEN '경미 (1~15분)'
+    WHEN f.initial_delay_min <= delay_threshold_30 THEN '보통 (16~30분)'
+    WHEN f.initial_delay_min <= delay_threshold_60 THEN '지연 (31~60분)'
+    WHEN f.initial_delay_min <= delay_threshold_120 THEN '심각 (1~2시간)'
     ELSE '매우 심각 (2시간 초과)'
   END AS initial_delay_bucket,
 
   -- 지연 변화 방향
   CASE
     WHEN f.initial_delay_min IS NULL THEN '공지 없음 (즉시 지연)'
-    WHEN l.final_delay_min - f.initial_delay_min > 15 THEN '악화 (+15분 이상)'
+    WHEN l.final_delay_min - f.initial_delay_min > delay_threshold_15 THEN '악화 (+15분 이상)'
     WHEN l.final_delay_min - f.initial_delay_min > 0 THEN '소폭 악화'
     WHEN l.final_delay_min - f.initial_delay_min = 0 THEN '변동 없음'
     ELSE '개선 (단축됨)'
@@ -120,4 +124,4 @@ SELECT
 FROM tz_converted_last_snapshot l
 LEFT JOIN first_snapshot f ON l.flight_key = f.flight_key
 WHERE l.nature = '여객'
-  AND l.final_delay_min > 15;  -- 지연 확정편만 (15분 초과 기준)
+  AND l.final_delay_min > delay_threshold_15;  -- 지연 확정편만 (15분 초과 기준)
