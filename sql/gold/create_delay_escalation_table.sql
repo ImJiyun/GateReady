@@ -1,4 +1,4 @@
--- ──────────────────────────────────────────────
+\-- ──────────────────────────────────────────────
 -- Gold Table 2: 지연 확대 분석용
 -- 갱신 주기: 매일 1회 (BigQuery Scheduled Query)
 -- 항공편별 "최초 관측 지연 → 최종 지연"을 비교하여
@@ -84,9 +84,15 @@ SELECT
   l.final_status,
   l.last_collected_at,
 
-  -- 추가 지연
-  -- initial_delay_min이 NULL이면 처음부터 지연 공지 없이 바로 지연된 케이스
+  -- 추가 지연 (부호 있음: 양수=악화, 음수=개선)
+  -- 기존 Tableau 시트 호환용으로 유지
   l.final_delay_min - COALESCE(f.initial_delay_min, 0) AS additional_delay_min,
+
+  -- 악화량만 (항상 >= 0): "초기 공지 이후 얼마나 더 나빠졌나"
+  GREATEST(0, l.final_delay_min - COALESCE(f.initial_delay_min, 0)) AS delay_increase_min,
+
+  -- 개선량만 (항상 >= 0): "초기 공지보다 얼마나 나아졌나"
+  GREATEST(0, COALESCE(f.initial_delay_min, 0) - l.final_delay_min) AS delay_reduction_min,
 
   -- 관측 기간 (분)
   TIMESTAMP_DIFF(l.last_collected_at, f.first_collected_at, MINUTE) AS observation_duration_min,
