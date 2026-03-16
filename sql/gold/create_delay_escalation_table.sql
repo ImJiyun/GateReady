@@ -112,6 +112,16 @@ SELECT
     ELSE '매우 심각 (2시간 초과)'
   END AS initial_delay_bucket,
 
+  -- 추가 지연 구간 (초기 공지 대비 얼마나 더 늦어졌나)
+  CASE
+    WHEN (l.final_delay_min - COALESCE(f.initial_delay_min, 0)) <= 0 THEN '추가 지연 없음'
+    WHEN (l.final_delay_min - COALESCE(f.initial_delay_min, 0)) <= delay_threshold_15 THEN '경미 (+1~15분)'
+    WHEN (l.final_delay_min - COALESCE(f.initial_delay_min, 0)) <= delay_threshold_30 THEN '보통 (+16~30분)'
+    WHEN (l.final_delay_min - COALESCE(f.initial_delay_min, 0)) <= delay_threshold_60 THEN '지연 (+31~60분)'
+    WHEN (l.final_delay_min - COALESCE(f.initial_delay_min, 0)) <= delay_threshold_120 THEN '심각 (+1~2시간)'
+    ELSE '매우 심각 (+2시간 초과)'
+  END AS additional_delay_bucket,
+
   -- 지연 변화 방향
   CASE
     WHEN f.initial_delay_min IS NULL THEN '공지 없음 (즉시 지연)'
