@@ -119,4 +119,5 @@ SELECT
 
 FROM tz_converted_last_snapshot l
 LEFT JOIN first_snapshot f ON l.flight_key = f.flight_key
-WHERE l.nature = '여객';
+WHERE l.nature = '여객'
+  AND l.final_delay_min > 15;  -- 지연 확정편만 (15분 초과 기준)
