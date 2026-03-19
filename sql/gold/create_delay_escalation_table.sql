@@ -10,6 +10,7 @@ DECLARE delay_threshold_15 INT64 DEFAULT 15;
 DECLARE delay_threshold_30 INT64 DEFAULT 30;
 DECLARE delay_threshold_60 INT64 DEFAULT 60;
 DECLARE delay_threshold_120 INT64 DEFAULT 120;
+DECLARE default_reason_not_provided STRING DEFAULT '사유 미제공';
 
 CREATE OR REPLACE TABLE `gold.tableau_delay_escalation` AS
 
@@ -87,7 +88,7 @@ SELECT
   -- 최종 확정 시점
   l.final_delay_min,
   l.final_status,
-  COALESCE(l.delay_reason_category, '사유 미제공') AS delay_reason_category,
+  COALESCE(l.delay_reason_category, default_reason_not_provided) AS delay_reason_category,
   l.last_collected_at,
 
   -- 추가 지연 (부호 있음: 양수=악화, 음수=개선)
